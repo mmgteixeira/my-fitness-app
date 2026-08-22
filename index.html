@@ -22,241 +22,226 @@
       background: var(--primary);
       color: white;
       padding: 16px;
-      text-align: center;
+      display: flex;
+      align-items: center;
+      gap: 12px;
       font-weight: bold;
+      font-size: 1.1rem;
+    }
+    .back-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
       font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .container {
-      padding: 16px;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-    .group-card {
+    .container { padding: 16px; max-width: 600px; margin: 0 auto; }
+    .card-item {
       background: var(--card);
       border-radius: 12px;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-      border-left: 5px solid var(--primary);
-      overflow: hidden;
-    }
-    .group-header {
       padding: 16px;
-      font-size: 1.1rem;
-      font-weight: bold;
-      color: var(--primary);
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      cursor: pointer;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      cursor: pointer;
-      user-select: none;
-      background: #ffffff;
     }
-    .group-header:hover {
+    .card-item h3 { margin: 0; font-size: 1rem; color: #1e293b; }
+    .card-item .subtitle { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+    .macros-pill {
+      background: #eff6ff;
+      color: var(--primary);
+      padding: 6px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+    .ingredient-card {
       background: #f1f5f9;
-    }
-    .arrow {
-      transition: transform 0.3s ease;
-      font-size: 0.9rem;
-      color: #64748b;
-    }
-    .group-card.open .arrow {
-      transform: rotate(180deg);
-    }
-    .group-body {
-      display: none;
-      padding: 0 16px 16px 16px;
-      border-top: 1px solid #f1f5f9;
-      background: #fafafa;
-    }
-    .group-card.open .group-body {
-      display: block;
-    }
-    .sub-option {
-      background: #ffffff;
-      border-radius: 8px;
-      padding: 12px;
-      margin-top: 12px;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
       border: 1px solid #e2e8f0;
     }
-    .sub-option h4 { margin: 0 0 6px 0; font-size: 0.95rem; color: #1e293b; }
-    .macros {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      background: #eff6ff;
-      padding: 6px 8px;
-      border-radius: 6px;
-    }
+    .ingredient-card h4 { margin: 0 0 4px 0; color: var(--primary); }
     .nav-bar {
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      background: white;
-      display: flex;
-      justify-content: space-around;
-      padding: 12px 0;
-      border-top: 1px solid #e2e8f0;
+      position: fixed; bottom: 0; width: 100%;
+      background: white; display: flex; justify-content: space-around;
+      padding: 12px 0; border-top: 1px solid #e2e8f0;
     }
-    .nav-item {
-      background: none;
-      border: none;
-      font-weight: 600;
-      color: #64748b;
-      font-size: 0.9rem;
-      cursor: pointer;
-    }
+    .nav-item { background: none; border: none; font-weight: 600; color: #64748b; font-size: 0.9rem; }
     .nav-item.active { color: var(--primary); }
     .hidden { display: none; }
   </style>
 </head>
 <body>
 
-  <header id="page-title">Refeições do Dia</header>
+  <header>
+    <button id="btn-back" class="back-btn hidden" onclick="goBack()">❮</button>
+    <span id="page-title">Refeições do Dia</span>
+  </header>
 
   <div class="container">
-    <div id="sec-dieta">
-      <div id="lista-refeicoes">Carregando plano...</div>
-    </div>
+    <!-- Nível 1: Lista de Categorias -->
+    <div id="view-categorias"></div>
 
-    <div id="sec-treinos" class="hidden">
-      <div id="lista-treinos">Carregando treinos...</div>
-    </div>
+    <!-- Nível 2: Lista de Pratos de uma Categoria -->
+    <div id="view-pratos" class="hidden"></div>
 
-    <div id="sec-historico" class="hidden">
-      <div id="lista-historico">Carregando histórico...</div>
-    </div>
+    <!-- Nível 3: Detalhe do Prato e Ingredientes -->
+    <div id="view-detalhe" class="hidden"></div>
+
+    <!-- Nível 4: Produtos de Supermercado do Ingrediente -->
+    <div id="view-produtos" class="hidden"></div>
+
+    <!-- Treinos e Histórico -->
+    <div id="view-treinos" class="hidden"></div>
+    <div id="view-historico" class="hidden"></div>
   </div>
 
   <nav class="nav-bar">
-    <button class="nav-item active" onclick="verSecao('dieta', 'Refeições do Dia')">Dieta</button>
-    <button class="nav-item" onclick="verSecao('treinos', 'Plano de Treino')">Treinos</button>
-    <button class="nav-item" onclick="verSecao('historico', 'Histórico de Avaliações')">Histórico</button>
+    <button class="nav-item active" onclick="switchTab('dieta')">Dieta</button>
+    <button class="nav-item" onclick="switchTab('treinos')">Treinos</button>
+    <button class="nav-item" onclick="switchTab('historico')">Histórico</button>
   </nav>
 
   <script>
     const SUPABASE_URL = "https://gbzfgbxnbhrawmkfhwls.supabase.co"; 
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiemZnYnhuYmhyYXdta2Zod2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNDY0NjQsImV4cCI6MjEwMjkyMjQ2NH0.crb4tb7RQVqRJZhShjVAl40kg0Ddua0s4zUj_6dCS3A';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiemZnYnhuYmhyYXdta2Zod2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNDY0NjQsImV4cCI6MjEwMjkyMjQ2NH0.crb4tb7RQVqRJZhShjVAl40kg0Ddua0s4zUj_6dCS3A'; 
 
-    const headers = {
-      "apikey": SUPABASE_KEY,
-      "Authorization": `Bearer ${SUPABASE_KEY}`
-    };
+    const headers = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` };
 
-    function toggleCard(cardHeader) {
-      const card = cardHeader.parentElement;
-      card.classList.toggle('open');
+    let navigationStack = ['categorias'];
+    let rawRefeicoes = [];
+
+    async function loadData() {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/refeicoes?select=*`, { headers });
+      rawRefeicoes = await res.json();
+      renderCategorias();
     }
 
-    async function carregarDados() {
-      try {
-        // 1. Carregar e Agrupar Refeições
-        const resRef = await fetch(`${SUPABASE_URL}/rest/v1/refeicoes?select=*`, { headers });
-        const ref = await resRef.json();
-
-        if (Array.isArray(ref) && ref.length > 0) {
-          const refeicoesAgrupadas = {};
-          
-          ref.forEach(r => {
-            const categoria = r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim();
-            if (!refeicoesAgrupadas[categoria]) refeicoesAgrupadas[categoria] = [];
-            refeicoesAgrupadas[categoria].push(r);
-          });
-
-          let htmlDieta = '';
-          for (const [cat, lista] of Object.entries(refeicoesAgrupadas)) {
-            htmlDieta += `
-              <div class="group-card">
-                <div class="group-header" onclick="toggleCard(this)">
-                  <span>${cat} (${lista[0].horario})</span>
-                  <span class="arrow">▼</span>
-                </div>
-                <div class="group-body">
-                  ${lista.map(item => `
-                    <div class="sub-option">
-                      <h4>${item.nome_refeicao}</h4>
-                      <p style="margin:4px 0; font-size:0.88rem;">${item.ingredientes_descricao}</p>
-                      <div class="macros">
-                        <span>🔥 ${item.calorias_totais} kcal</span>
-                        <span>P: ${item.proteina_g}g</span>
-                        <span>C: ${item.carbs_g}g</span>
-                        <span>G: ${item.gordura_g}g</span>
-                      </div>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>`;
-          }
-          document.getElementById('lista-refeicoes').innerHTML = htmlDieta;
-        }
-
-        // 2. Carregar e Agrupar Treinos
-        const resTr = await fetch(`${SUPABASE_URL}/rest/v1/treinos?select=*`, { headers });
-        const tr = await resTr.json();
-
-        if (Array.isArray(tr) && tr.length > 0) {
-          const treinosAgrupados = {};
-
-          tr.forEach(t => {
-            if (!treinosAgrupados[t.dia_semana]) treinosAgrupados[t.dia_semana] = [];
-            treinosAgrupados[t.dia_semana].push(t);
-          });
-
-          let htmlTreinos = '';
-          for (const [dia, lista] of Object.entries(treinosAgrupados)) {
-            htmlTreinos += `
-              <div class="group-card">
-                <div class="group-header" onclick="toggleCard(this)">
-                  <span>📅 ${dia}</span>
-                  <span class="arrow">▼</span>
-                </div>
-                <div class="group-body">
-                  ${lista.map(ex => `
-                    <div class="sub-option">
-                      <h4>${ex.exercicio} (${ex.grupo_muscular})</h4>
-                      <p style="margin:4px 0; font-size:0.85rem;"><strong>Séries/Reps:</strong> ${ex.series_repeticoes} | <strong>Carga:</strong> ${ex.carga_kg} kg</p>
-                      <p style="margin:2px 0; font-size:0.75rem; color:#64748b;"><strong>Alt:</strong> ${ex.exercicios_alternativos || 'Nenhuma'}</p>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>`;
-          }
-          document.getElementById('lista-treinos').innerHTML = htmlTreinos;
-        }
-
-        // 3. Carregar Histórico
-        const resHis = await fetch(`${SUPABASE_URL}/rest/v1/progresso?select=*&order=data.desc`, { headers });
-        const his = await resHis.json();
-
-        if (Array.isArray(his) && his.length > 0) {
-          document.getElementById('lista-historico').innerHTML = his.map(h => `
-            <div class="group-card">
-              <div class="group-header" onclick="toggleCard(this)">
-                <span>Semana ${h.semana} - ${h.data}</span>
-                <span class="arrow">▼</span>
-              </div>
-              <div class="group-body">
-                <p style="margin-top:12px;"><strong>Peso:</strong> ${h.peso_kg} kg | <strong>Cintura:</strong> ${h.cintura_cm || 'N/A'} cm</p>
-              </div>
+    function renderCategorias() {
+      const categorias = [...new Set(rawRefeicoes.map(r => r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim()))];
+      
+      document.getElementById('view-categorias').innerHTML = categorias.map(cat => {
+        const count = rawRefeicoes.filter(r => r.nome_refeicao.includes(cat)).length;
+        return `
+          <div class="card-item" onclick="openPratos('${cat}')">
+            <div>
+              <h3>${cat}</h3>
+              <div class="subtitle">${count} opções disponíveis</div>
             </div>
-          `).join('');
-        }
+            <span>❯</span>
+          </div>`;
+      }).join('');
+    }
 
-      } catch (err) {
-        console.error("Erro ao carregar dados:", err);
+    function openPratos(categoria) {
+      const pratos = rawRefeicoes.filter(r => r.nome_refeicao.includes(categoria));
+      
+      document.getElementById('view-pratos').innerHTML = pratos.map(p => `
+        <div class="card-item" onclick="openDetalhe(${p.id})">
+          <div>
+            <h3>${p.nome_refeicao}</h3>
+            <div class="subtitle">${p.ingredientes_descricao.substring(0, 45)}...</div>
+          </div>
+          <div class="macros-pill">${p.calorias_totais} kcal</div>
+        </div>
+      `).join('');
+
+      navigateTo('pratos', categoria);
+    }
+
+    async function openDetalhe(pratoId) {
+      const prato = rawRefeicoes.find(r => r.id === pratoId);
+      
+      // Procurar ingredientes na nova tabela
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/ingredientes?refeicao_id=eq.${pratoId}&select=*`, { headers });
+      const ingredientes = await res.json();
+
+      let ingHtml = '';
+      if(ingredientes.length > 0) {
+        ingHtml = ingredientes.map(i => `
+          <div class="ingredient-card" onclick="openProdutos(${i.id}, '${i.nome}')">
+            <h4>${i.nome}</h4>
+            <div style="font-size:0.85rem; color:#475569;">${i.quantidade_descricao}</div>
+            <div style="font-size:0.75rem; color:var(--primary); margin-top:6px;">Ver marcas no supermercado ❯</div>
+          </div>
+        `).join('');
+      } else {
+        ingHtml = `<p style="font-size:0.9rem;">${prato.ingredientes_descricao}</p>`;
+      }
+
+      document.getElementById('view-detalhe').innerHTML = `
+        <h2>${prato.nome_refeicao}</h2>
+        <div style="margin-bottom:16px;" class="macros-pill">🔥 ${prato.calorias_totais} kcal | P:${prato.proteina_g}g | C:${prato.carbs_g}g | G:${prato.gordura_g}g</div>
+        <h3>INGREDIENTES</h3>
+        ${ingHtml}
+      `;
+
+      navigateTo('detalhe', 'Ingredientes');
+    }
+
+    async function openProdutos(ingredienteId, nomeIngrediente) {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?ingrediente_id=eq.${ingredienteId}&select=*`, { headers });
+      const produtos = await res.json();
+
+      document.getElementById('view-produtos').innerHTML = `
+        <h3>Opções de Supermercado: ${nomeIngrediente}</h3>
+        ${produtos.map(prod => `
+          <div class="card-item">
+            <div>
+              <h3>${prod.nome_produto}</h3>
+              <div class="subtitle">Marca: ${prod.marca} | ${prod.supermercado}</div>
+            </div>
+          </div>
+        `).join('')}
+      `;
+
+      navigateTo('produtos', 'Opções no Supermercado');
+    }
+
+    function navigateTo(viewId, title) {
+      document.querySelectorAll('.container > div').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`view-${viewId}`).classList.remove('hidden');
+      document.getElementById('page-title').innerText = title;
+      document.getElementById('btn-back').classList.remove('hidden');
+      navigationStack.push(viewId);
+    }
+
+    function goBack() {
+      navigationStack.pop();
+      const previousView = navigationStack[navigationStack.length - 1];
+
+      document.querySelectorAll('.container > div').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`view-${previousView}`).classList.remove('hidden');
+
+      if (navigationStack.length === 1) {
+        document.getElementById('btn-back').classList.add('hidden');
+        document.getElementById('page-title').innerText = 'Refeições do Dia';
       }
     }
 
-    function verSecao(secao, titulo) {
-      ['dieta', 'treinos', 'historico'].forEach(s => document.getElementById(`sec-${s}`).classList.add('hidden'));
-      document.getElementById(`sec-${secao}`).classList.remove('hidden');
-      document.getElementById('page-title').innerText = titulo;
-      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-      event.target.classList.add('active');
+    function switchTab(tab) {
+      navigationStack = ['categorias'];
+      document.getElementById('btn-back').classList.add('hidden');
+      document.querySelectorAll('.container > div').forEach(el => el.classList.add('hidden'));
+
+      if (tab === 'dieta') {
+        document.getElementById('view-categorias').classList.remove('hidden');
+        document.getElementById('page-title').innerText = 'Refeições do Dia';
+      }
     }
 
-    carregarDados();
+    loadData();
   </script>
 </body>
 </html>
