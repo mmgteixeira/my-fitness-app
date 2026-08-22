@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Fitness Coach AI</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --primary: #1d4ed8;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding-bottom: 70px;
+    }
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 16px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    .container {
+      padding: 16px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .card h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: var(--primary); }
+    .macros {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: #eff6ff;
+      padding: 8px;
+      border-radius: 6px;
+    }
+    .nav-bar {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: white;
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 0;
+      border-top: 1px solid #e2e8f0;
+    }
+    .nav-item {
+      background: none;
+      border: none;
+      font-weight: 600;
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+    .nav-item.active { color: var(--primary); }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <header id="page-title">Refeições do Dia</header>
+
+  <div class="container">
+    <!-- Secção Nutrição -->
+    <div id="sec-dieta">
+      <div id="lista-refeicoes">Carregando plano...</div>
+    </div>
+
+    <!-- Secção Treinos -->
+    <div id="sec-treinos" class="hidden">
+      <div id="lista-treinos">Carregando treinos...</div>
+    </div>
+
+    <!-- Secção Histórico -->
+    <div id="sec-historico" class="hidden">
+      <div id="lista-historico">Carregando histórico...</div>
+    </div>
+  </div>
+
+  <!-- Navegação Inferior -->
+  <nav class="nav-bar">
+    <button class="nav-item active" onclick="verSecao('dieta', 'Refeições do Dia')">Dieta</button>
+    <button class="nav-item" onclick="verSecao('treinos', 'Plano de Treino')">Treinos</button>
+    <button class="nav-item" onclick="verSecao('historico', 'Histórico de Avaliações')">Histórico</button>
+  </nav>
+
+  <script>
+    // Configuração do Supabase (Substitui com as tuas chaves)
+    const SUPABASE_URL = 'https://supabase.com/dashboard/project/gbzfgbxnbhrawmkfhwls';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiemZnYnhuYmhyYXdta2Zod2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNDY0NjQsImV4cCI6MjEwMjkyMjQ2NH0.crb4tb7RQVqRJZhShjVAl40kg0Ddua0s4zUj_6dCS3A';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function carregarDieta() {
+      const { data, error } = await _supabase.from('refeicoes').select('*');
+      if (error) return console.error(error);
+      
+      const container = document.getElementById('lista-refeicoes');
+      container.innerHTML = data.map(r => `
+        <div class="card">
+          <h3>${r.nome_refeicao} (${r.horario})</h3>
+          <p>${r.ingredientes_descricao}</p>
+          <div class="macros">
+            <span>🔥 ${r.calorias_totais} kcal</span>
+            <span>P: ${r.proteina_g}g</span>
+            <span>C: ${r.carbs_g}g</span>
+            <span>G: ${r.gordura_g}g</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function carregarTreinos() {
+      const { data, error } = await _supabase.from('treinos').select('*');
+      if (error) return console.error(error);
+      
+      const container = document.getElementById('lista-treinos');
+      container.innerHTML = data.map(t => `
+        <div class="card">
+          <h3>${t.exercicio} (${t.grupo_muscular})</h3>
+          <p><strong>Séries/Reps:</strong> ${t.series_repeticoes} | <strong>Carga:</strong> ${t.carga_kg} kg</p>
+          <p><small><strong>Alternativas:</strong> ${t.exercicios_alternativos || 'Nenhuma'}</small></p>
+        </div>
+      `).join('');
+    }
+
+    async function carregarHistorico() {
+      const { data, error } = await _supabase.from('progresso').select('*').order('data', { ascending: false });
+      if (error) return console.error(error);
+      
+      const container = document.getElementById('lista-historico');
+      container.innerHTML = data.map(h => `
+        <div class="card">
+          <h3>Semana ${h.semana} - ${h.data}</h3>
+          <p><strong>Peso:</strong> ${h.peso_kg} kg | <strong>Cintura:</strong> ${h.cintura_cm || 'N/A'} cm</p>
+        </div>
+      `).join('');
+    }
+
+    function verSecao(secao, titulo) {
+      document.getElementById('sec-dieta').classList.add('hidden');
+      document.getElementById('sec-treinos').classList.add('hidden');
+      document.getElementById('sec-historico').classList.add('hidden');
+      
+      document.getElementById(`sec-${secao}`).classList.remove('hidden');
+      document.getElementById('page-title').innerText = titulo;
+
+      document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    // Inicialização
+    carregarDieta();
+    carregarTreinos();
+    carregarHistorico();
+  </script>
+</body>
+</html>
