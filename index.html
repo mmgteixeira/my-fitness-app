@@ -101,8 +101,8 @@
 
   <script>
     // Configuração do Supabase (Substitui com as tuas chaves)
-    const SUPABASE_URL = 'https://supabase.com/dashboard/project/gbzfgbxnbhrawmkfhwls';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiemZnYnhuYmhyYXdta2Zod2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNDY0NjQsImV4cCI6MjEwMjkyMjQ2NH0.crb4tb7RQVqRJZhShjVAl40kg0Ddua0s4zUj_6dCS3A';
+    const SUPABASE_URL = NEXT_PUBLIC_SUPABASE_URL;
+    const SUPABASE_KEY = NEXT_PUBLIC_SUPABASE_ANON_KEY;
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     async function carregarDieta() {
