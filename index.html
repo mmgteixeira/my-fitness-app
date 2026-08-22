@@ -5,78 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Fitness Coach AI</title>
   <style>
-    :root {
-      --primary: #1d4ed8;
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #0f172a;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      margin: 0;
-      padding-bottom: 80px;
-    }
-    header {
-      background: var(--primary);
-      color: white;
-      padding: 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: bold;
-      font-size: 1.1rem;
-    }
-    .back-btn {
-      background: rgba(255,255,255,0.2);
-      border: none;
-      color: white;
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
-      font-size: 1.2rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+    :root { --primary: #1d4ed8; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; }
+    header { background: var(--primary); color: white; padding: 16px; display: flex; align-items: center; gap: 12px; font-weight: bold; font-size: 1.1rem; }
+    .back-btn { background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .container { padding: 16px; max-width: 600px; margin: 0 auto; }
-    .card-item {
-      background: var(--card);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .card-item h3 { margin: 0; font-size: 1rem; color: #1e293b; }
-    .card-item .subtitle { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
-    .macros-pill {
-      background: #eff6ff;
-      color: var(--primary);
-      padding: 6px 10px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: bold;
-    }
-    .ingredient-card {
-      background: #f1f5f9;
-      border-radius: 10px;
-      padding: 14px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      border: 1px solid #e2e8f0;
-    }
-    .ingredient-card h4 { margin: 0 0 4px 0; color: var(--primary); }
-    .nav-bar {
-      position: fixed; bottom: 0; width: 100%;
-      background: white; display: flex; justify-content: space-around;
-      padding: 12px 0; border-top: 1px solid #e2e8f0;
-    }
+    .card-item { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 12px; }
+    .prod-img { width: 60px; height: 60px; object-fit: contain; border-radius: 8px; background: #f1f5f9; }
+    .card-info { flex: 1; }
+    .card-info h3 { margin: 0; font-size: 0.95rem; color: #1e293b; }
+    .card-info .subtitle { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
+    .price-tag { font-size: 1rem; font-weight: bold; color: #16a34a; background: #f0fdf4; padding: 4px 8px; border-radius: 6px; }
+    .btn-update { background: #e2e8f0; border: none; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600; }
+    .nav-bar { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #e2e8f0; }
     .nav-item { background: none; border: none; font-weight: 600; color: #64748b; font-size: 0.9rem; cursor: pointer; }
     .nav-item.active { color: var(--primary); }
     .hidden { display: none; }
@@ -90,17 +31,12 @@
   </header>
 
   <div class="container">
-    <!-- Nível DIETA -->
     <div id="view-categorias"></div>
     <div id="view-pratos" class="hidden"></div>
     <div id="view-detalhe" class="hidden"></div>
     <div id="view-produtos" class="hidden"></div>
-
-    <!-- Nível TREINOS -->
     <div id="view-treinos-dias" class="hidden"></div>
     <div id="view-treinos-exercicios" class="hidden"></div>
-
-    <!-- Nível HISTÓRICO -->
     <div id="view-historico" class="hidden"></div>
   </div>
 
@@ -117,88 +53,63 @@
     const headers = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` };
 
     let navigationStack = ['categorias'];
-    let rawRefeicoes = [];
-    let rawTreinos = [];
-    let rawHistorico = [];
+    let rawRefeicoes = [], rawTreinos = [], rawHistorico = [];
 
     async function loadData() {
-      try {
-        const [resRef, resTr, resHis] = await Promise.all([
-          fetch(`${SUPABASE_URL}/rest/v1/refeicoes?select=*`, { headers }),
-          fetch(`${SUPABASE_URL}/rest/v1/treinos?select=*`, { headers }),
-          fetch(`${SUPABASE_URL}/rest/v1/progresso?select=*&order=data.desc`, { headers })
-        ]);
-
-        rawRefeicoes = await resRef.json();
-        rawTreinos = await resTr.json();
-        rawHistorico = await resHis.json();
-
-        renderCategorias();
-      } catch (err) {
-        console.error("Erro ao carregar dados:", err);
-      }
+      const [resRef, resTr, resHis] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/refeicoes?select=*`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/treinos?select=*`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/progresso?select=*&order=data.desc`, { headers })
+      ]);
+      rawRefeicoes = await resRef.json();
+      rawTreinos = await resTr.json();
+      rawHistorico = await resHis.json();
+      renderCategorias();
     }
 
-    // --- SEÇÃO DIETA ---
     function renderCategorias() {
       if (!Array.isArray(rawRefeicoes)) return;
       const categorias = [...new Set(rawRefeicoes.map(r => r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim()))];
-      
-      document.getElementById('view-categorias').innerHTML = categorias.map(cat => {
-        const count = rawRefeicoes.filter(r => r.nome_refeicao.includes(cat)).length;
-        return `
-          <div class="card-item" onclick="openPratos('${cat}')">
-            <div>
-              <h3>${cat}</h3>
-              <div class="subtitle">${count} opções disponíveis</div>
-            </div>
-            <span>❯</span>
-          </div>`;
-      }).join('');
+      document.getElementById('view-categorias').innerHTML = categorias.map(cat => `
+        <div class="card-item" onclick="openPratos('${cat}')">
+          <div class="card-info">
+            <h3>${cat}</h3>
+            <div class="subtitle">${rawRefeicoes.filter(r => r.nome_refeicao.includes(cat)).length} opções</div>
+          </div>
+          <span>❯</span>
+        </div>`).join('');
     }
 
     function openPratos(categoria) {
       const pratos = rawRefeicoes.filter(r => r.nome_refeicao.includes(categoria));
-      
       document.getElementById('view-pratos').innerHTML = pratos.map(p => `
         <div class="card-item" onclick="openDetalhe(${p.id})">
-          <div>
+          <div class="card-info">
             <h3>${p.nome_refeicao}</h3>
             <div class="subtitle">${p.ingredientes_descricao.substring(0, 45)}...</div>
           </div>
-          <div class="macros-pill">${p.calorias_totais} kcal</div>
-        </div>
-      `).join('');
-
+          <div style="font-weight:bold; color:var(--primary);">${p.calorias_totais} kcal</div>
+        </div>`).join('');
       navigateTo('pratos', categoria);
     }
 
     async function openDetalhe(pratoId) {
       const prato = rawRefeicoes.find(r => r.id === pratoId);
-      
       const res = await fetch(`${SUPABASE_URL}/rest/v1/ingredientes?refeicao_id=eq.${pratoId}&select=*`, { headers });
       const ingredientes = await res.json();
 
-      let ingHtml = '';
-      if(Array.isArray(ingredientes) && ingredientes.length > 0) {
-        ingHtml = ingredientes.map(i => `
-          <div class="ingredient-card" onclick="openProdutos(${i.id}, '${i.nome}')">
-            <h4>${i.nome}</h4>
-            <div style="font-size:0.85rem; color:#475569;">${i.quantidade_descricao}</div>
-            <div style="font-size:0.75rem; color:var(--primary); margin-top:6px;">Ver marcas no supermercado ❯</div>
-          </div>
-        `).join('');
-      } else {
-        ingHtml = `<div class="ingredient-card"><p style="margin:0; font-size:0.9rem;">${prato.ingredientes_descricao}</p></div>`;
-      }
-
       document.getElementById('view-detalhe').innerHTML = `
         <h2>${prato.nome_refeicao}</h2>
-        <div style="margin-bottom:16px;" class="macros-pill">🔥 ${prato.calorias_totais} kcal | P:${prato.proteina_g}g | C:${prato.carbs_g}g | G:${prato.gordura_g}g</div>
-        <h3>INGREDIENTES</h3>
-        ${ingHtml}
+        <h3 style="margin-top:20px;">INGREDIENTES</h3>
+        ${ingredientes.map(i => `
+          <div class="card-item" onclick="openProdutos(${i.id}, '${i.nome}')">
+            <div class="card-info">
+              <h3>${i.nome}</h3>
+              <div class="subtitle">${i.quantidade_descricao}</div>
+            </div>
+            <span>Ver marcas ❯</span>
+          </div>`).join('')}
       `;
-
       navigateTo('detalhe', 'Ingredientes');
     }
 
@@ -210,70 +121,42 @@
         <h3>Opções de Supermercado: ${nomeIngrediente}</h3>
         ${Array.isArray(produtos) && produtos.length > 0 ? produtos.map(prod => `
           <div class="card-item">
-            <div>
+            <img class="prod-img" src="${prod.imagem_url || 'https://via.placeholder.com/60?text=Produto'}" alt="Foto Produto">
+            <div class="card-info">
               <h3>${prod.nome_produto}</h3>
-              <div class="subtitle">Marca: ${prod.marca || 'N/A'} | ${prod.supermercado || 'Geral'}</div>
+              <div class="subtitle">Marca: ${prod.marca || 'N/A'} | ${prod.loja_mais_barata || 'Geral'}</div>
+              <div class="subtitle">${prod.preco_unidade || ''}</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="price-tag">${prod.preco_atual ? prod.preco_atual + ' €' : 'S/ Preço'}</div>
+              <button class="btn-update" style="margin-top:6px;" onclick="buscarPrecoAuto(${prod.id}, '${prod.nome_produto}')">🔄 Atualizar</button>
             </div>
           </div>
-        `).join('') : '<p style="color:#64748b;">Nenhum produto cadastrado para este ingrediente.</p>'}
+        `).join('') : '<p>Nenhum produto cadastrado.</p>'}
       `;
-
-      navigateTo('produtos', 'Opções no Supermercado');
+      navigateTo('produtos', 'Opções de Supermercado');
     }
 
-    // --- SEÇÃO TREINOS ---
-    function renderTreinosDias() {
-      if (!Array.isArray(rawTreinos)) return;
-      const dias = [...new Set(rawTreinos.map(t => t.dia_semana))];
-
-      document.getElementById('view-treinos-dias').innerHTML = dias.map(dia => {
-        const count = rawTreinos.filter(t => t.dia_semana === dia).length;
-        return `
-          <div class="card-item" onclick="openExercicios('${dia}')">
-            <div>
-              <h3>📅 ${dia}</h3>
-              <div class="subtitle">${count} exercícios agendados</div>
-            </div>
-            <span>❯</span>
-          </div>`;
-      }).join('');
+    async function buscarPrecoAuto(prodId, termo) {
+      alert("Procurando foto e preço atualizado do produto...");
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/buscar-precos`, {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ produto_id: prodId, termo_pesquisa: termo })
+        });
+        const result = await res.json();
+        if(result.success) {
+          alert(`Atualizado! Preço: ${result.preco}€`);
+          location.reload();
+        } else {
+          alert("Não foi possível encontrar a foto e o preço exatos do produto.");
+        }
+      } catch(e) {
+        alert("Erro na ligação à função de busca.");
+      }
     }
 
-    function openExercicios(dia) {
-      const exercicios = rawTreinos.filter(t => t.dia_semana === dia);
-
-      document.getElementById('view-treinos-exercicios').innerHTML = `
-        <h2>${dia}</h2>
-        ${exercicios.map(ex => `
-          <div class="ingredient-card">
-            <h4>${ex.exercicio} (${ex.grupo_muscular})</h4>
-            <p style="margin:4px 0; font-size:0.85rem;"><strong>Séries/Reps:</strong> ${ex.series_repeticoes} | <strong>Carga:</strong> ${ex.carga_kg} kg</p>
-            <p style="margin:2px 0; font-size:0.75rem; color:#64748b;"><strong>Alternativas:</strong> ${ex.exercicios_alternativos || 'Nenhuma'}</p>
-          </div>
-        `).join('')}
-      `;
-
-      navigateTo('treinos-exercicios', dia);
-    }
-
-    // --- SEÇÃO HISTÓRICO ---
-    function renderHistorico() {
-      if (!Array.isArray(rawHistorico)) return;
-
-      document.getElementById('view-historico').innerHTML = `
-        <h2>Histórico de Avaliações</h2>
-        ${rawHistorico.map(h => `
-          <div class="card-item">
-            <div>
-              <h3>Semana ${h.semana} - ${h.data}</h3>
-              <div class="subtitle">Peso: <strong>${h.peso_kg} kg</strong> | Cintura: <strong>${h.cintura_cm || 'N/A'} cm</strong></div>
-            </div>
-          </div>
-        `).join('')}
-      `;
-    }
-
-    // --- NAVEGAÇÃO ENTRE VIEWS ---
     function navigateTo(viewId, title) {
       document.querySelectorAll('.container > div').forEach(el => el.classList.add('hidden'));
       document.getElementById(`view-${viewId}`).classList.remove('hidden');
@@ -285,20 +168,9 @@
     function goBack() {
       navigationStack.pop();
       const previousView = navigationStack[navigationStack.length - 1];
-
       document.querySelectorAll('.container > div').forEach(el => el.classList.add('hidden'));
       document.getElementById(`view-${previousView}`).classList.remove('hidden');
-
-      if (navigationStack.length === 1) {
-        document.getElementById('btn-back').classList.add('hidden');
-        updateHeaderTitle(previousView);
-      }
-    }
-
-    function updateHeaderTitle(view) {
-      if (view === 'categorias') document.getElementById('page-title').innerText = 'Refeições do Dia';
-      else if (view === 'treinos-dias') document.getElementById('page-title').innerText = 'Plano de Treino';
-      else if (view === 'historico') document.getElementById('page-title').innerText = 'Histórico de Avaliações';
+      if (navigationStack.length === 1) document.getElementById('btn-back').classList.add('hidden');
     }
 
     function switchTab(tab) {
@@ -310,19 +182,14 @@
         navigationStack = ['categorias'];
         document.getElementById('nav-dieta').classList.add('active');
         document.getElementById('view-categorias').classList.remove('hidden');
-        document.getElementById('page-title').innerText = 'Refeições do Dia';
       } else if (tab === 'treinos') {
         navigationStack = ['treinos-dias'];
         document.getElementById('nav-treinos').classList.add('active');
-        renderTreinosDias();
         document.getElementById('view-treinos-dias').classList.remove('hidden');
-        document.getElementById('page-title').innerText = 'Plano de Treino';
       } else if (tab === 'historico') {
         navigationStack = ['historico'];
         document.getElementById('nav-historico').classList.add('active');
-        renderHistorico();
         document.getElementById('view-historico').classList.remove('hidden');
-        document.getElementById('page-title').innerText = 'Histórico de Avaliações';
       }
     }
 
