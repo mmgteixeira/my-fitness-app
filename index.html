@@ -31,22 +31,38 @@
       max-width: 600px;
       margin: 0 auto;
     }
-    .card {
+    .group-card {
       background: var(--card);
       border-radius: 12px;
       padding: 16px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-bottom: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      border-left: 5px solid var(--primary);
     }
-    .card h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: var(--primary); }
+    .group-title {
+      font-size: 1.15rem;
+      font-weight: bold;
+      color: var(--primary);
+      margin-bottom: 12px;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 6px;
+    }
+    .sub-option {
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .sub-option:last-child { margin-bottom: 0; }
+    .sub-option h4 { margin: 0 0 6px 0; font-size: 0.95rem; color: #1e293b; }
     .macros {
       display: flex;
       gap: 8px;
       margin-top: 8px;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: 600;
       background: #eff6ff;
-      padding: 8px;
+      padding: 6px 8px;
       border-radius: 6px;
     }
     .nav-bar {
@@ -68,14 +84,6 @@
     }
     .nav-item.active { color: var(--primary); }
     .hidden { display: none; }
-    .error-msg {
-      background: #fef2f2;
-      color: #991b1b;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      margin-bottom: 12px;
-    }
   </style>
 </head>
 <body>
@@ -83,8 +91,6 @@
   <header id="page-title">Refeições do Dia</header>
 
   <div class="container">
-    <div id="status-error" class="error-msg hidden"></div>
-
     <div id="sec-dieta">
       <div id="lista-refeicoes">Carregando plano...</div>
     </div>
@@ -105,8 +111,7 @@
   </nav>
 
   <script>
-    // PREENCHE COM OS TEUS DADOS DO SUPABASE (Sem barra / no final da URL)
-    const SUPABASE_URL = "https://gbzfgbxnbhrawmkfhwls.supabase.co";
+    const SUPABASE_URL = "https://gbzfgbxnbhrawmkfhwls.supabase.co"; 
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiemZnYnhuYmhyYXdta2Zod2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNDY0NjQsImV4cCI6MjEwMjkyMjQ2NH0.crb4tb7RQVqRJZhShjVAl40kg0Ddua0s4zUj_6dCS3A';
 
     const headers = {
@@ -114,59 +119,87 @@
       "Authorization": `Bearer ${SUPABASE_KEY}`
     };
 
-    function showError(msg) {
-      const errBox = document.getElementById('status-error');
-      errBox.innerText = msg;
-      errBox.classList.remove('hidden');
-    }
-
     async function carregarDados() {
       try {
-        // 1. Carregar Refeições
+        // 1. Carregar e Agrupar Refeições
         const resRef = await fetch(`${SUPABASE_URL}/rest/v1/refeicoes?select=*`, { headers });
-        if (!resRef.ok) throw new Error(`Erro Refeições (${resRef.status})`);
         const ref = await resRef.json();
 
-        document.getElementById('lista-refeicoes').innerHTML = ref.map(r => `
-          <div class="card">
-            <h3>${r.nome_refeicao} (${r.horario})</h3>
-            <p>${r.ingredientes_descricao}</p>
-            <div class="macros">
-              <span>🔥 ${r.calorias_totais} kcal</span>
-              <span>P: ${r.proteina_g}g</span>
-              <span>C: ${r.carbs_g}g</span>
-              <span>G: ${r.gordura_g}g</span>
-            </div>
-          </div>
-        `).join('');
+        if (Array.isArray(ref) && ref.length > 0) {
+          const refeicoesAgrupadas = {};
+          
+          ref.forEach(r => {
+            const categoria = r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim();
+            if (!refeicoesAgrupadas[categoria]) refeicoesAgrupadas[categoria] = [];
+            refeicoesAgrupadas[categoria].push(r);
+          });
 
-        // 2. Carregar Treinos
+          let htmlDieta = '';
+          for (const [cat, lista] of Object.entries(refeicoesAgrupadas)) {
+            htmlDieta += `
+              <div class="group-card">
+                <div class="group-title">${cat} (${lista[0].horario})</div>
+                ${lista.map(item => `
+                  <div class="sub-option">
+                    <h4>${item.nome_refeicao}</h4>
+                    <p style="margin:4px 0; font-size:0.88rem;">${item.ingredientes_descricao}</p>
+                    <div class="macros">
+                      <span>🔥 ${item.calorias_totais} kcal</span>
+                      <span>P: ${item.proteina_g}g</span>
+                      <span>C: ${item.carbs_g}g</span>
+                      <span>G: ${item.gordura_g}g</span>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>`;
+          }
+          document.getElementById('lista-refeicoes').innerHTML = htmlDieta;
+        }
+
+        // 2. Carregar e Agrupar Treinos
         const resTr = await fetch(`${SUPABASE_URL}/rest/v1/treinos?select=*`, { headers });
-        if (resTr.ok) {
-          const tr = await resTr.json();
-          document.getElementById('lista-treinos').innerHTML = tr.map(t => `
-            <div class="card">
-              <h3>${t.exercicio} (${t.grupo_muscular})</h3>
-              <p><strong>Séries/Reps:</strong> ${t.series_repeticoes} | <strong>Carga:</strong> ${t.carga_kg} kg</p>
-              <p><small><strong>Alternativas:</strong> ${t.exercicios_alternativos || 'Nenhuma'}</small></p>
-            </div>
-          `).join('');
+        const tr = await resTr.json();
+
+        if (Array.isArray(tr) && tr.length > 0) {
+          const treinosAgrupados = {};
+
+          tr.forEach(t => {
+            if (!treinosAgrupados[t.dia_semana]) treinosAgrupados[t.dia_semana] = [];
+            treinosAgrupados[t.dia_semana].push(t);
+          });
+
+          let htmlTreinos = '';
+          for (const [dia, lista] of Object.entries(treinosAgrupados)) {
+            htmlTreinos += `
+              <div class="group-card">
+                <div class="group-title">📅 ${dia}</div>
+                ${lista.map(ex => `
+                  <div class="sub-option">
+                    <h4>${ex.exercicio} (${ex.grupo_muscular})</h4>
+                    <p style="margin:4px 0; font-size:0.85rem;"><strong>Séries/Reps:</strong> ${ex.series_repeticoes} | <strong>Carga:</strong> ${ex.carga_kg} kg</p>
+                    <p style="margin:2px 0; font-size:0.75rem; color:#64748b;"><strong>Alt:</strong> ${ex.exercicios_alternativos || 'Nenhuma'}</p>
+                  </div>
+                `).join('')}
+              </div>`;
+          }
+          document.getElementById('lista-treinos').innerHTML = htmlTreinos;
         }
 
         // 3. Carregar Histórico
         const resHis = await fetch(`${SUPABASE_URL}/rest/v1/progresso?select=*&order=data.desc`, { headers });
-        if (resHis.ok) {
-          const his = await resHis.json();
+        const his = await resHis.json();
+
+        if (Array.isArray(his) && his.length > 0) {
           document.getElementById('lista-historico').innerHTML = his.map(h => `
-            <div class="card">
-              <h3>Semana ${h.semana} - ${h.data}</h3>
+            <div class="group-card">
+              <div class="group-title">Semana ${h.semana} - ${h.data}</div>
               <p><strong>Peso:</strong> ${h.peso_kg} kg | <strong>Cintura:</strong> ${h.cintura_cm || 'N/A'} cm</p>
             </div>
           `).join('');
         }
 
       } catch (err) {
-        showError("Falha ao carregar dados: " + err.message + ". Confirma se o URL começa por https:// e não tem barra / no final.");
+        console.error("Erro ao carregar dados:", err);
       }
     }
 
