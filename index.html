@@ -77,7 +77,7 @@
       background: white; display: flex; justify-content: space-around;
       padding: 12px 0; border-top: 1px solid #e2e8f0;
     }
-    .nav-item { background: none; border: none; font-weight: 600; color: #64748b; font-size: 0.9rem; }
+    .nav-item { background: none; border: none; font-weight: 600; color: #64748b; font-size: 0.9rem; cursor: pointer; }
     .nav-item.active { color: var(--primary); }
     .hidden { display: none; }
   </style>
@@ -90,45 +90,58 @@
   </header>
 
   <div class="container">
-    <!-- Nível 1: Lista de Categorias -->
+    <!-- Nível DIETA -->
     <div id="view-categorias"></div>
-
-    <!-- Nível 2: Lista de Pratos de uma Categoria -->
     <div id="view-pratos" class="hidden"></div>
-
-    <!-- Nível 3: Detalhe do Prato e Ingredientes -->
     <div id="view-detalhe" class="hidden"></div>
-
-    <!-- Nível 4: Produtos de Supermercado do Ingrediente -->
     <div id="view-produtos" class="hidden"></div>
 
-    <!-- Treinos e Histórico -->
-    <div id="view-treinos" class="hidden"></div>
+    <!-- Nível TREINOS -->
+    <div id="view-treinos-dias" class="hidden"></div>
+    <div id="view-treinos-exercicios" class="hidden"></div>
+
+    <!-- Nível HISTÓRICO -->
     <div id="view-historico" class="hidden"></div>
   </div>
 
   <nav class="nav-bar">
-    <button class="nav-item active" onclick="switchTab('dieta')">Dieta</button>
-    <button class="nav-item" onclick="switchTab('treinos')">Treinos</button>
-    <button class="nav-item" onclick="switchTab('historico')">Histórico</button>
+    <button id="nav-dieta" class="nav-item active" onclick="switchTab('dieta')">Dieta</button>
+    <button id="nav-treinos" class="nav-item" onclick="switchTab('treinos')">Treinos</button>
+    <button id="nav-historico" class="nav-item" onclick="switchTab('historico')">Histórico</button>
   </nav>
 
   <script>
     const SUPABASE_URL = "https://gbzfgbxnbhrawmkfhwls.supabase.co"; 
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiemZnYnhuYmhyYXdta2Zod2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNDY0NjQsImV4cCI6MjEwMjkyMjQ2NH0.crb4tb7RQVqRJZhShjVAl40kg0Ddua0s4zUj_6dCS3A'; 
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdia2ZnYnhuYmhyYXdta2Zod2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAxNzc1OTksImV4cCI6MjA1NTc1MzU5OX0.eKq_6xS78UlsL4AInyMvD_S5z8AFl4H9_T8f4KxR_mQ"; 
 
     const headers = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` };
 
     let navigationStack = ['categorias'];
     let rawRefeicoes = [];
+    let rawTreinos = [];
+    let rawHistorico = [];
 
     async function loadData() {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/refeicoes?select=*`, { headers });
-      rawRefeicoes = await res.json();
-      renderCategorias();
+      try {
+        const [resRef, resTr, resHis] = await Promise.all([
+          fetch(`${SUPABASE_URL}/rest/v1/refeicoes?select=*`, { headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/treinos?select=*`, { headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/progresso?select=*&order=data.desc`, { headers })
+        ]);
+
+        rawRefeicoes = await resRef.json();
+        rawTreinos = await resTr.json();
+        rawHistorico = await resHis.json();
+
+        renderCategorias();
+      } catch (err) {
+        console.error("Erro ao carregar dados:", err);
+      }
     }
 
+    // --- SEÇÃO DIETA ---
     function renderCategorias() {
+      if (!Array.isArray(rawRefeicoes)) return;
       const categorias = [...new Set(rawRefeicoes.map(r => r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim()))];
       
       document.getElementById('view-categorias').innerHTML = categorias.map(cat => {
@@ -163,12 +176,11 @@
     async function openDetalhe(pratoId) {
       const prato = rawRefeicoes.find(r => r.id === pratoId);
       
-      // Procurar ingredientes na nova tabela
       const res = await fetch(`${SUPABASE_URL}/rest/v1/ingredientes?refeicao_id=eq.${pratoId}&select=*`, { headers });
       const ingredientes = await res.json();
 
       let ingHtml = '';
-      if(ingredientes.length > 0) {
+      if(Array.isArray(ingredientes) && ingredientes.length > 0) {
         ingHtml = ingredientes.map(i => `
           <div class="ingredient-card" onclick="openProdutos(${i.id}, '${i.nome}')">
             <h4>${i.nome}</h4>
@@ -177,7 +189,7 @@
           </div>
         `).join('');
       } else {
-        ingHtml = `<p style="font-size:0.9rem;">${prato.ingredientes_descricao}</p>`;
+        ingHtml = `<div class="ingredient-card"><p style="margin:0; font-size:0.9rem;">${prato.ingredientes_descricao}</p></div>`;
       }
 
       document.getElementById('view-detalhe').innerHTML = `
@@ -196,19 +208,72 @@
 
       document.getElementById('view-produtos').innerHTML = `
         <h3>Opções de Supermercado: ${nomeIngrediente}</h3>
-        ${produtos.map(prod => `
+        ${Array.isArray(produtos) && produtos.length > 0 ? produtos.map(prod => `
           <div class="card-item">
             <div>
               <h3>${prod.nome_produto}</h3>
-              <div class="subtitle">Marca: ${prod.marca} | ${prod.supermercado}</div>
+              <div class="subtitle">Marca: ${prod.marca || 'N/A'} | ${prod.supermercado || 'Geral'}</div>
             </div>
           </div>
-        `).join('')}
+        `).join('') : '<p style="color:#64748b;">Nenhum produto cadastrado para este ingrediente.</p>'}
       `;
 
       navigateTo('produtos', 'Opções no Supermercado');
     }
 
+    // --- SEÇÃO TREINOS ---
+    function renderTreinosDias() {
+      if (!Array.isArray(rawTreinos)) return;
+      const dias = [...new Set(rawTreinos.map(t => t.dia_semana))];
+
+      document.getElementById('view-treinos-dias').innerHTML = dias.map(dia => {
+        const count = rawTreinos.filter(t => t.dia_semana === dia).length;
+        return `
+          <div class="card-item" onclick="openExercicios('${dia}')">
+            <div>
+              <h3>📅 ${dia}</h3>
+              <div class="subtitle">${count} exercícios agendados</div>
+            </div>
+            <span>❯</span>
+          </div>`;
+      }).join('');
+    }
+
+    function openExercicios(dia) {
+      const exercicios = rawTreinos.filter(t => t.dia_semana === dia);
+
+      document.getElementById('view-treinos-exercicios').innerHTML = `
+        <h2>${dia}</h2>
+        ${exercicios.map(ex => `
+          <div class="ingredient-card">
+            <h4>${ex.exercicio} (${ex.grupo_muscular})</h4>
+            <p style="margin:4px 0; font-size:0.85rem;"><strong>Séries/Reps:</strong> ${ex.series_repeticoes} | <strong>Carga:</strong> ${ex.carga_kg} kg</p>
+            <p style="margin:2px 0; font-size:0.75rem; color:#64748b;"><strong>Alternativas:</strong> ${ex.exercicios_alternativos || 'Nenhuma'}</p>
+          </div>
+        `).join('')}
+      `;
+
+      navigateTo('treinos-exercicios', dia);
+    }
+
+    // --- SEÇÃO HISTÓRICO ---
+    function renderHistorico() {
+      if (!Array.isArray(rawHistorico)) return;
+
+      document.getElementById('view-historico').innerHTML = `
+        <h2>Histórico de Avaliações</h2>
+        ${rawHistorico.map(h => `
+          <div class="card-item">
+            <div>
+              <h3>Semana ${h.semana} - ${h.data}</h3>
+              <div class="subtitle">Peso: <strong>${h.peso_kg} kg</strong> | Cintura: <strong>${h.cintura_cm || 'N/A'} cm</strong></div>
+            </div>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    // --- NAVEGAÇÃO ENTRE VIEWS ---
     function navigateTo(viewId, title) {
       document.querySelectorAll('.container > div').forEach(el => el.classList.add('hidden'));
       document.getElementById(`view-${viewId}`).classList.remove('hidden');
@@ -226,18 +291,38 @@
 
       if (navigationStack.length === 1) {
         document.getElementById('btn-back').classList.add('hidden');
-        document.getElementById('page-title').innerText = 'Refeições do Dia';
+        updateHeaderTitle(previousView);
       }
     }
 
+    function updateHeaderTitle(view) {
+      if (view === 'categorias') document.getElementById('page-title').innerText = 'Refeições do Dia';
+      else if (view === 'treinos-dias') document.getElementById('page-title').innerText = 'Plano de Treino';
+      else if (view === 'historico') document.getElementById('page-title').innerText = 'Histórico de Avaliações';
+    }
+
     function switchTab(tab) {
-      navigationStack = ['categorias'];
-      document.getElementById('btn-back').classList.add('hidden');
+      document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.container > div').forEach(el => el.classList.add('hidden'));
+      document.getElementById('btn-back').classList.add('hidden');
 
       if (tab === 'dieta') {
+        navigationStack = ['categorias'];
+        document.getElementById('nav-dieta').classList.add('active');
         document.getElementById('view-categorias').classList.remove('hidden');
         document.getElementById('page-title').innerText = 'Refeições do Dia';
+      } else if (tab === 'treinos') {
+        navigationStack = ['treinos-dias'];
+        document.getElementById('nav-treinos').classList.add('active');
+        renderTreinosDias();
+        document.getElementById('view-treinos-dias').classList.remove('hidden');
+        document.getElementById('page-title').innerText = 'Plano de Treino';
+      } else if (tab === 'historico') {
+        navigationStack = ['historico'];
+        document.getElementById('nav-historico').classList.add('active');
+        renderHistorico();
+        document.getElementById('view-historico').classList.remove('hidden');
+        document.getElementById('page-title').innerText = 'Histórico de Avaliações';
       }
     }
 
