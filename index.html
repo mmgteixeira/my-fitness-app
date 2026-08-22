@@ -10,13 +10,12 @@
     header { background: var(--primary); color: white; padding: 16px; display: flex; align-items: center; gap: 12px; font-weight: bold; font-size: 1.1rem; }
     .back-btn { background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .container { padding: 16px; max-width: 600px; margin: 0 auto; }
-    .card-item { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 12px; }
-    .prod-img { width: 65px; height: 65px; object-fit: contain; border-radius: 8px; background: #ffffff; border: 1px solid #e2e8f0; padding: 2px; }
+    .card-item { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 12px; cursor: pointer; }
+    .prod-img { width: 65px; height: 65px; object-fit: cover; border-radius: 8px; background: #e2e8f0; flex-shrink: 0; }
     .card-info { flex: 1; }
     .card-info h3 { margin: 0; font-size: 0.95rem; color: #1e293b; }
     .card-info .subtitle { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
-    .price-tag { font-size: 0.95rem; font-weight: bold; color: #16a34a; background: #f0fdf4; padding: 4px 8px; border-radius: 6px; }
-    .btn-search { background: #eff6ff; color: var(--primary); border: 1px solid #bfdbfe; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600; margin-top: 6px; }
+    .price-tag { font-size: 0.85rem; font-weight: bold; color: var(--primary); background: #eff6ff; padding: 4px 8px; border-radius: 6px; }
     .nav-bar { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #e2e8f0; }
     .nav-item { background: none; border: none; font-weight: 600; color: #64748b; font-size: 0.9rem; cursor: pointer; }
     .nav-item.active { color: var(--primary); }
@@ -31,12 +30,17 @@
   </header>
 
   <div class="container">
+    <!-- Vistas Dieta -->
     <div id="view-categorias"></div>
     <div id="view-pratos" class="hidden"></div>
     <div id="view-detalhe" class="hidden"></div>
     <div id="view-produtos" class="hidden"></div>
+
+    <!-- Vistas Treinos -->
     <div id="view-treinos-dias" class="hidden"></div>
     <div id="view-treinos-exercicios" class="hidden"></div>
+
+    <!-- Vistas Histórico -->
     <div id="view-historico" class="hidden"></div>
   </div>
 
@@ -56,17 +60,23 @@
     let rawRefeicoes = [], rawTreinos = [], rawHistorico = [];
 
     async function loadData() {
-      const [resRef, resTr, resHis] = await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/refeicoes?select=*`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/treinos?select=*`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/progresso?select=*&order=data.desc`, { headers })
-      ]);
-      rawRefeicoes = await resRef.json();
-      rawTreinos = await resTr.json();
-      rawHistorico = await resHis.json();
-      renderCategorias();
+      try {
+        const [resRef, resTr, resHis] = await Promise.all([
+          fetch(`${SUPABASE_URL}/rest/v1/refeicoes?select=*`, { headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/treinos?select=*`, { headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/progresso?select=*&order=data.desc`, { headers })
+        ]);
+        rawRefeicoes = await resRef.json();
+        rawTreinos = await resTr.json();
+        rawHistorico = await resHis.json();
+
+        renderCategorias();
+      } catch (e) {
+        console.error("Erro ao carregar dados:", e);
+      }
     }
 
+    // --- SEÇÃO DIETA ---
     function renderCategorias() {
       if (!Array.isArray(rawRefeicoes)) return;
       const categorias = [...new Set(rawRefeicoes.map(r => r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim()))];
@@ -74,7 +84,7 @@
         <div class="card-item" onclick="openPratos('${cat}')">
           <div class="card-info">
             <h3>${cat}</h3>
-            <div class="subtitle">${rawRefeicoes.filter(r => r.nome_refeicao.includes(cat)).length} opções</div>
+            <div class="subtitle">${rawRefeicoes.filter(r => r.nome_refeicao.includes(cat)).length} opções disponíveis</div>
           </div>
           <span>❯</span>
         </div>`).join('');
@@ -86,9 +96,9 @@
         <div class="card-item" onclick="openDetalhe(${p.id})">
           <div class="card-info">
             <h3>${p.nome_refeicao}</h3>
-            <div class="subtitle">${p.ingredientes_descricao.substring(0, 45)}...</div>
+            <div class="subtitle">${p.ingredientes_descricao}</div>
           </div>
-          <div style="font-weight:bold; color:var(--primary);">${p.calorias_totais} kcal</div>
+          <div class="price-tag">${p.calorias_totais} kcal</div>
         </div>`).join('');
       navigateTo('pratos', categoria);
     }
@@ -98,17 +108,29 @@
       const res = await fetch(`${SUPABASE_URL}/rest/v1/ingredientes?refeicao_id=eq.${pratoId}&select=*`, { headers });
       const ingredientes = await res.json();
 
+      let ingHtml = '';
+      if (Array.isArray(ingredientes) && ingredientes.length > 0) {
+        ingHtml = ingredientes.map(i => {
+          const imgUrl = `https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3`;
+          return `
+            <div class="card-item" onclick="openProdutos(${i.id}, '${i.nome.replace(/'/g, "")}')">
+              <img class="prod-img" src="${i.imagem_url || imgUrl}" alt="Ingrediente">
+              <div class="card-info">
+                <h3>${i.nome}</h3>
+                <div class="subtitle">${i.quantidade_descricao}</div>
+              </div>
+              <span>Ver marcas ❯</span>
+            </div>`;
+        }).join('');
+      } else {
+        ingHtml = `<div class="card-item"><div class="card-info"><p style="margin:0;">${prato.ingredientes_descricao}</p></div></div>`;
+      }
+
       document.getElementById('view-detalhe').innerHTML = `
         <h2>${prato.nome_refeicao}</h2>
-        <h3 style="margin-top:20px;">INGREDIENTES</h3>
-        ${ingredientes.map(i => `
-          <div class="card-item" onclick="openProdutos(${i.id}, '${i.nome}')">
-            <div class="card-info">
-              <h3>${i.nome}</h3>
-              <div class="subtitle">${i.quantidade_descricao}</div>
-            </div>
-            <span>Ver marcas ❯</span>
-          </div>`).join('')}
+        <div style="margin-bottom:16px;" class="price-tag">🔥 ${prato.calorias_totais} kcal | P:${prato.proteina_g}g | C:${prato.carbs_g}g | G:${prato.gordura_g}g</div>
+        <h3>INGREDIENTES</h3>
+        ${ingHtml}
       `;
       navigateTo('detalhe', 'Ingredientes');
     }
@@ -118,56 +140,70 @@
       const produtos = await res.json();
 
       document.getElementById('view-produtos').innerHTML = `
-        <h3>Opções de Supermercado: ${nomeIngrediente}</h3>
-        ${Array.isArray(produtos) && produtos.length > 0 ? produtos.map(prod => {
-          const imgFallback = `https://source.unsplash.com/150x150/?${encodeURIComponent(prod.nome_produto)}`;
-          const imgFinal = prod.imagem_url || imgFallback;
-          return `
-            <div class="card-item">
-              <img class="prod-img" src="${imgFinal}" onerror="this.src='${imgFallback}'" alt="Foto Produto">
-              <div class="card-info">
-                <h3>${prod.nome_produto}</h3>
-                <div class="subtitle">Marca: ${prod.marca || 'Variada'} | ${prod.supermercado || 'Supermercados'}</div>
-                <div class="subtitle">${prod.preco_unidade || ''}</div>
-              </div>
-              <div style="text-align:right;">
-                <div class="price-tag">${prod.preco_atual ? prod.preco_atual + ' €' : 'Em consulta'}</div>
-                <button class="btn-search" onclick="buscarFotoAuto(${prod.id}, '${prod.nome_produto}')">🔍 Buscar Foto</button>
-              </div>
+        <h3>Opções de Supermercado</h3>
+        <p style="color:#64748b; font-size:0.85rem; margin-bottom:16px;">${nomeIngrediente}</p>
+        ${Array.isArray(produtos) && produtos.length > 0 ? produtos.map(prod => `
+          <div class="card-item" style="cursor:default;">
+            <img class="prod-img" src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&auto=format&fit=crop&q=60" alt="Produto">
+            <div class="card-info">
+              <h3>${prod.nome_produto}</h3>
+              <div class="subtitle">Marca: ${prod.marca || 'Generica'}</div>
+              <div class="subtitle">${prod.supermercado || 'Supermercado'}</div>
             </div>
-          `;
-        }).join('') : '<p>Nenhum produto cadastrado.</p>'}
+            <div class="price-tag">${prod.preco_atual ? prod.preco_atual + ' €' : 'Disponível'}</div>
+          </div>
+        `).join('') : '<p>Nenhuma marca registada para este ingrediente.</p>'}
       `;
-      navigateTo('produtos', 'Opções de Supermercado');
+      navigateTo('produtos', 'Produtos do Supermercado');
     }
 
-    async function buscarFotoAuto(prodId, nomeProduto) {
-      try {
-        // Procura foto oficial de marca na API Open Food Facts Portugal
-        const url = `https://pt.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(nomeProduto)}&search_simple=1&action=process&json=1`;
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (data.products && data.products.length > 0 && data.products[0].image_front_url) {
-          const fotoOficial = data.products[0].image_front_url;
-          
-          // Guardar a foto encontrada no Supabase
-          await fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?id=eq.${prodId}`, {
-            method: 'PATCH',
-            headers: { ...headers, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imagem_url: fotoOficial })
-          });
-
-          alert("Foto oficial encontrada e guardada com sucesso!");
-          openProdutos(prodId, nomeProduto);
-        } else {
-          alert("A usar foto ilustrativa de alta qualidade para este produto.");
-        }
-      } catch(e) {
-        console.error("Erro na busca de imagem:", e);
-      }
+    // --- SEÇÃO TREINOS ---
+    function renderTreinosDias() {
+      if (!Array.isArray(rawTreinos)) return;
+      const dias = [...new Set(rawTreinos.map(t => t.dia_semana))];
+      document.getElementById('view-treinos-dias').innerHTML = dias.map(dia => `
+        <div class="card-item" onclick="openExercicios('${dia}')">
+          <div class="card-info">
+            <h3>📅 ${dia}</h3>
+            <div class="subtitle">${rawTreinos.filter(t => t.dia_semana === dia).length} exercícios no plano</div>
+          </div>
+          <span>❯</span>
+        </div>`).join('');
     }
 
+    function openExercicios(dia) {
+      const exercicios = rawTreinos.filter(t => t.dia_semana === dia);
+      document.getElementById('view-treinos-exercicios').innerHTML = `
+        <h2>${dia}</h2>
+        ${exercicios.map(ex => `
+          <div class="card-item" style="cursor:default; flex-direction:column; align-items:flex-start;">
+            <h3 style="color:var(--primary);">${ex.exercicio} (${ex.grupo_muscular})</h3>
+            <p style="margin:6px 0; font-size:0.85rem;"><strong>Séries / Reps:</strong> ${ex.series_repeticoes} | <strong>Carga:</strong> ${ex.carga_kg} kg</p>
+            <p style="margin:0; font-size:0.75rem; color:#64748b;"><strong>Alternativas:</strong> ${ex.exercicios_alternativos || 'Nenhuma'}</p>
+          </div>
+        `).join('')}
+      `;
+      navigateTo('treinos-exercicios', dia);
+    }
+
+    // --- SEÇÃO HISTÓRICO ---
+    function renderHistorico() {
+      if (!Array.isArray(rawHistorico)) return;
+      document.getElementById('view-historico').innerHTML = `
+        <h2>Histórico de Avaliações</h2>
+        ${rawHistorico.map(h => `
+          <div class="card-item" style="cursor:default;">
+            <div class="card-info">
+              <h3>Semana ${h.semana} - ${h.data}</h3>
+              <div class="subtitle">Peso: <strong>${h.peso_kg} kg</strong> | Cintura: <strong>${h.cintura_cm || 'N/A'} cm</strong></div>
+            </div>
+            <span style="color:#16a34a; font-weight:bold;">✓</span>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    // --- SISTEMA DE NAVEGAÇÃO ---
     function navigateTo(viewId, title) {
       document.querySelectorAll('.container > div').forEach(el => el.classList.add('hidden'));
       document.getElementById(`view-${viewId}`).classList.remove('hidden');
@@ -181,7 +217,13 @@
       const previousView = navigationStack[navigationStack.length - 1];
       document.querySelectorAll('.container > div').forEach(el => el.classList.add('hidden'));
       document.getElementById(`view-${previousView}`).classList.remove('hidden');
-      if (navigationStack.length === 1) document.getElementById('btn-back').classList.add('hidden');
+      
+      if (navigationStack.length === 1) {
+        document.getElementById('btn-back').classList.add('hidden');
+        if (previousView === 'categorias') document.getElementById('page-title').innerText = 'Refeições do Dia';
+        else if (previousView === 'treinos-dias') document.getElementById('page-title').innerText = 'Plano de Treino';
+        else if (previousView === 'historico') document.getElementById('page-title').innerText = 'Histórico de Avaliações';
+      }
     }
 
     function switchTab(tab) {
@@ -193,14 +235,19 @@
         navigationStack = ['categorias'];
         document.getElementById('nav-dieta').classList.add('active');
         document.getElementById('view-categorias').classList.remove('hidden');
+        document.getElementById('page-title').innerText = 'Refeições do Dia';
       } else if (tab === 'treinos') {
         navigationStack = ['treinos-dias'];
         document.getElementById('nav-treinos').classList.add('active');
+        renderTreinosDias();
         document.getElementById('view-treinos-dias').classList.remove('hidden');
+        document.getElementById('page-title').innerText = 'Plano de Treino';
       } else if (tab === 'historico') {
         navigationStack = ['historico'];
         document.getElementById('nav-historico').classList.add('active');
+        renderHistorico();
         document.getElementById('view-historico').classList.remove('hidden');
+        document.getElementById('page-title').innerText = 'Histórico de Avaliações';
       }
     }
 
