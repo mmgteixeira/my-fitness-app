@@ -34,26 +34,50 @@
     .group-card {
       background: var(--card);
       border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.08);
       border-left: 5px solid var(--primary);
+      overflow: hidden;
     }
-    .group-title {
-      font-size: 1.15rem;
+    .group-header {
+      padding: 16px;
+      font-size: 1.1rem;
       font-weight: bold;
       color: var(--primary);
-      margin-bottom: 12px;
-      border-bottom: 1px solid #e2e8f0;
-      padding-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      background: #ffffff;
+    }
+    .group-header:hover {
+      background: #f1f5f9;
+    }
+    .arrow {
+      transition: transform 0.3s ease;
+      font-size: 0.9rem;
+      color: #64748b;
+    }
+    .group-card.open .arrow {
+      transform: rotate(180deg);
+    }
+    .group-body {
+      display: none;
+      padding: 0 16px 16px 16px;
+      border-top: 1px solid #f1f5f9;
+      background: #fafafa;
+    }
+    .group-card.open .group-body {
+      display: block;
     }
     .sub-option {
-      background: #f1f5f9;
+      background: #ffffff;
       border-radius: 8px;
       padding: 12px;
-      margin-bottom: 10px;
+      margin-top: 12px;
+      border: 1px solid #e2e8f0;
     }
-    .sub-option:last-child { margin-bottom: 0; }
     .sub-option h4 { margin: 0 0 6px 0; font-size: 0.95rem; color: #1e293b; }
     .macros {
       display: flex;
@@ -81,6 +105,7 @@
       font-weight: 600;
       color: #64748b;
       font-size: 0.9rem;
+      cursor: pointer;
     }
     .nav-item.active { color: var(--primary); }
     .hidden { display: none; }
@@ -119,6 +144,11 @@
       "Authorization": `Bearer ${SUPABASE_KEY}`
     };
 
+    function toggleCard(cardHeader) {
+      const card = cardHeader.parentElement;
+      card.classList.toggle('open');
+    }
+
     async function carregarDados() {
       try {
         // 1. Carregar e Agrupar Refeições
@@ -138,19 +168,24 @@
           for (const [cat, lista] of Object.entries(refeicoesAgrupadas)) {
             htmlDieta += `
               <div class="group-card">
-                <div class="group-title">${cat} (${lista[0].horario})</div>
-                ${lista.map(item => `
-                  <div class="sub-option">
-                    <h4>${item.nome_refeicao}</h4>
-                    <p style="margin:4px 0; font-size:0.88rem;">${item.ingredientes_descricao}</p>
-                    <div class="macros">
-                      <span>🔥 ${item.calorias_totais} kcal</span>
-                      <span>P: ${item.proteina_g}g</span>
-                      <span>C: ${item.carbs_g}g</span>
-                      <span>G: ${item.gordura_g}g</span>
+                <div class="group-header" onclick="toggleCard(this)">
+                  <span>${cat} (${lista[0].horario})</span>
+                  <span class="arrow">▼</span>
+                </div>
+                <div class="group-body">
+                  ${lista.map(item => `
+                    <div class="sub-option">
+                      <h4>${item.nome_refeicao}</h4>
+                      <p style="margin:4px 0; font-size:0.88rem;">${item.ingredientes_descricao}</p>
+                      <div class="macros">
+                        <span>🔥 ${item.calorias_totais} kcal</span>
+                        <span>P: ${item.proteina_g}g</span>
+                        <span>C: ${item.carbs_g}g</span>
+                        <span>G: ${item.gordura_g}g</span>
+                      </div>
                     </div>
-                  </div>
-                `).join('')}
+                  `).join('')}
+                </div>
               </div>`;
           }
           document.getElementById('lista-refeicoes').innerHTML = htmlDieta;
@@ -172,14 +207,19 @@
           for (const [dia, lista] of Object.entries(treinosAgrupados)) {
             htmlTreinos += `
               <div class="group-card">
-                <div class="group-title">📅 ${dia}</div>
-                ${lista.map(ex => `
-                  <div class="sub-option">
-                    <h4>${ex.exercicio} (${ex.grupo_muscular})</h4>
-                    <p style="margin:4px 0; font-size:0.85rem;"><strong>Séries/Reps:</strong> ${ex.series_repeticoes} | <strong>Carga:</strong> ${ex.carga_kg} kg</p>
-                    <p style="margin:2px 0; font-size:0.75rem; color:#64748b;"><strong>Alt:</strong> ${ex.exercicios_alternativos || 'Nenhuma'}</p>
-                  </div>
-                `).join('')}
+                <div class="group-header" onclick="toggleCard(this)">
+                  <span>📅 ${dia}</span>
+                  <span class="arrow">▼</span>
+                </div>
+                <div class="group-body">
+                  ${lista.map(ex => `
+                    <div class="sub-option">
+                      <h4>${ex.exercicio} (${ex.grupo_muscular})</h4>
+                      <p style="margin:4px 0; font-size:0.85rem;"><strong>Séries/Reps:</strong> ${ex.series_repeticoes} | <strong>Carga:</strong> ${ex.carga_kg} kg</p>
+                      <p style="margin:2px 0; font-size:0.75rem; color:#64748b;"><strong>Alt:</strong> ${ex.exercicios_alternativos || 'Nenhuma'}</p>
+                    </div>
+                  `).join('')}
+                </div>
               </div>`;
           }
           document.getElementById('lista-treinos').innerHTML = htmlTreinos;
@@ -192,8 +232,13 @@
         if (Array.isArray(his) && his.length > 0) {
           document.getElementById('lista-historico').innerHTML = his.map(h => `
             <div class="group-card">
-              <div class="group-title">Semana ${h.semana} - ${h.data}</div>
-              <p><strong>Peso:</strong> ${h.peso_kg} kg | <strong>Cintura:</strong> ${h.cintura_cm || 'N/A'} cm</p>
+              <div class="group-header" onclick="toggleCard(this)">
+                <span>Semana ${h.semana} - ${h.data}</span>
+                <span class="arrow">▼</span>
+              </div>
+              <div class="group-body">
+                <p style="margin-top:12px;"><strong>Peso:</strong> ${h.peso_kg} kg | <strong>Cintura:</strong> ${h.cintura_cm || 'N/A'} cm</p>
+              </div>
             </div>
           `).join('');
         }
