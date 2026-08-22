@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Fitness Coach AI</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --primary: #1d4ed8;
@@ -106,25 +105,14 @@
   </nav>
 
   <script>
-    // Coloca diretamente o teu URL do Supabase e a tua Anon Key pública aqui
-    const SUPABASE_URL = 'https://supabase.com/dashboard/project/gbzfgbxnbhrawmkfhwls';
+    // PREENCHE COM OS TEUS DADOS DO SUPABASE (Sem barra / no final da URL)
+    const SUPABASE_URL = "'https://supabase.com/dashboard/project/gbzfgbxnbhrawmkfhwls'".replace(/\/$/, ""); 
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiemZnYnhuYmhyYXdta2Zod2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNDY0NjQsImV4cCI6MjEwMjkyMjQ2NH0.crb4tb7RQVqRJZhShjVAl40kg0Ddua0s4zUj_6dCS3A';
-    
-    let _supabase = null;
 
-    async function init() {
-      try {
-        if (!SUPABASE_URL || SUPABASE_URL.includes("TEU_PROJECTO")) {
-          showError("Aviso: Substitui as variáveis SUPABASE_URL e SUPABASE_KEY no código com os teus dados do Supabase.");
-          return;
-        }
-
-        _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        await carregarDados();
-      } catch (err) {
-        showError("Erro na ligação à base de dados: " + err.message);
-      }
-    }
+    const headers = {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`
+    };
 
     function showError(msg) {
       const errBox = document.getElementById('status-error');
@@ -133,12 +121,12 @@
     }
 
     async function carregarDados() {
-      if (!_supabase) return;
+      try {
+        // 1. Carregar Refeições
+        const resRef = await fetch(`${SUPABASE_URL}/rest/v1/refeicoes?select=*`, { headers });
+        if (!resRef.ok) throw new Error(`Erro Refeições (${resRef.status})`);
+        const ref = await resRef.json();
 
-      // 1. Carregar Refeições
-      const { data: ref, error: errRef } = await _supabase.from('refeicoes').select('*');
-      if (errRef) showError("Erro nas refeições: " + errRef.message);
-      else if (ref) {
         document.getElementById('lista-refeicoes').innerHTML = ref.map(r => `
           <div class="card">
             <h3>${r.nome_refeicao} (${r.horario})</h3>
@@ -151,29 +139,34 @@
             </div>
           </div>
         `).join('');
-      }
 
-      // 2. Carregar Treinos
-      const { data: tr, error: errTr } = await _supabase.from('treinos').select('*');
-      if (tr) {
-        document.getElementById('lista-treinos').innerHTML = tr.map(t => `
-          <div class="card">
-            <h3>${t.exercicio} (${t.grupo_muscular})</h3>
-            <p><strong>Séries/Reps:</strong> ${t.series_repeticoes} | <strong>Carga:</strong> ${t.carga_kg} kg</p>
-            <p><small><strong>Alternativas:</strong> ${t.exercicios_alternativos || 'Nenhuma'}</small></p>
-          </div>
-        `).join('');
-      }
+        // 2. Carregar Treinos
+        const resTr = await fetch(`${SUPABASE_URL}/rest/v1/treinos?select=*`, { headers });
+        if (resTr.ok) {
+          const tr = await resTr.json();
+          document.getElementById('lista-treinos').innerHTML = tr.map(t => `
+            <div class="card">
+              <h3>${t.exercicio} (${t.grupo_muscular})</h3>
+              <p><strong>Séries/Reps:</strong> ${t.series_repeticoes} | <strong>Carga:</strong> ${t.carga_kg} kg</p>
+              <p><small><strong>Alternativas:</strong> ${t.exercicios_alternativos || 'Nenhuma'}</small></p>
+            </div>
+          `).join('');
+        }
 
-      // 3. Carregar Histórico
-      const { data: his, error: errHis } = await _supabase.from('progresso').select('*').order('data', { ascending: false });
-      if (his) {
-        document.getElementById('lista-historico').innerHTML = his.map(h => `
-          <div class="card">
-            <h3>Semana ${h.semana} - ${h.data}</h3>
-            <p><strong>Peso:</strong> ${h.peso_kg} kg | <strong>Cintura:</strong> ${h.cintura_cm || 'N/A'} cm</p>
-          </div>
-        `).join('');
+        // 3. Carregar Histórico
+        const resHis = await fetch(`${SUPABASE_URL}/rest/v1/progresso?select=*&order=data.desc`, { headers });
+        if (resHis.ok) {
+          const his = await resHis.json();
+          document.getElementById('lista-historico').innerHTML = his.map(h => `
+            <div class="card">
+              <h3>Semana ${h.semana} - ${h.data}</h3>
+              <p><strong>Peso:</strong> ${h.peso_kg} kg | <strong>Cintura:</strong> ${h.cintura_cm || 'N/A'} cm</p>
+            </div>
+          `).join('');
+        }
+
+      } catch (err) {
+        showError("Falha ao carregar dados: " + err.message + ". Confirma se o URL começa por https:// e não tem barra / no final.");
       }
     }
 
@@ -185,7 +178,7 @@
       event.target.classList.add('active');
     }
 
-    init();
+    carregarDados();
   </script>
 </body>
 </html>
