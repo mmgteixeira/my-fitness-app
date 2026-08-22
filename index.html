@@ -10,6 +10,34 @@
     header { background: var(--primary); color: white; padding: 16px; display: flex; align-items: center; gap: 12px; font-weight: bold; font-size: 1.1rem; }
     .back-btn { background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .container { padding: 16px; max-width: 600px; margin: 0 auto; }
+    
+    /* Selector de Regime (Bulk / Cut) */
+    .regime-switch-container {
+      display: flex;
+      background: #e2e8f0;
+      padding: 4px;
+      border-radius: 25px;
+      margin-bottom: 16px;
+    }
+    .regime-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      color: #64748b;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    .regime-btn.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
     .card-item { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 12px; cursor: pointer; }
     .prod-img { width: 65px; height: 65px; object-fit: cover; border-radius: 8px; background: #e2e8f0; flex-shrink: 0; }
     .card-info { flex: 1; }
@@ -30,6 +58,12 @@
   </header>
 
   <div class="container">
+    <!-- Seletor de Regime no topo da Dieta -->
+    <div id="regime-bar" class="regime-switch-container">
+      <button id="btn-bulk" class="regime-btn active" onclick="setRegime('bulk')">💪 BULK</button>
+      <button id="btn-cutting" class="regime-btn" onclick="setRegime('cutting')">🔥 CUTTING</button>
+    </div>
+
     <!-- Vistas Dieta -->
     <div id="view-categorias"></div>
     <div id="view-pratos" class="hidden"></div>
@@ -56,6 +90,7 @@
 
     const headers = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` };
 
+    let currentRegime = 'bulk';
     let navigationStack = ['categorias'];
     let rawRefeicoes = [], rawTreinos = [], rawHistorico = [];
 
@@ -76,22 +111,49 @@
       }
     }
 
+    function setRegime(regime) {
+      currentRegime = regime;
+      document.getElementById('btn-bulk').classList.toggle('active', regime === 'bulk');
+      document.getElementById('btn-cutting').classList.toggle('active', regime === 'cutting');
+      
+      // Se estivermos dentro da hierarquia, volta para as categorias ao mudar o regime
+      navigationStack = ['categorias'];
+      document.querySelectorAll('.container > div').forEach(el => el.classList.add('hidden'));
+      document.getElementById('regime-bar').classList.remove('hidden');
+      document.getElementById('view-categorias').classList.remove('hidden');
+      document.getElementById('btn-back').classList.add('hidden');
+      document.getElementById('page-title').innerText = `Refeições (${regime.toUpperCase()})`;
+
+      renderCategorias();
+    }
+
     // --- SEÇÃO DIETA ---
     function renderCategorias() {
       if (!Array.isArray(rawRefeicoes)) return;
-      const categorias = [...new Set(rawRefeicoes.map(r => r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim()))];
+      
+      // Filtra refeições pelo regime selecionado (fallback para bulk se não estiver definido)
+      const refeicoesFiltradas = rawRefeicoes.filter(r => (r.regime || 'bulk').toLowerCase() === currentRegime);
+      
+      if (refeicoesFiltradas.length === 0) {
+        document.getElementById('view-categorias').innerHTML = `<p style="text-align:center; color:#64748b; padding:20px;">Nenhum plano de <strong>${currentRegime.toUpperCase()}</strong> registado ainda.</p>`;
+        return;
+      }
+
+      const categorias = [...new Set(refeicoesFiltradas.map(r => r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim()))];
+      
       document.getElementById('view-categorias').innerHTML = categorias.map(cat => `
         <div class="card-item" onclick="openPratos('${cat}')">
           <div class="card-info">
             <h3>${cat}</h3>
-            <div class="subtitle">${rawRefeicoes.filter(r => r.nome_refeicao.includes(cat)).length} opções disponíveis</div>
+            <div class="subtitle">${refeicoesFiltradas.filter(r => r.nome_refeicao.includes(cat)).length} opções no plano</div>
           </div>
           <span>❯</span>
         </div>`).join('');
     }
 
     function openPratos(categoria) {
-      const pratos = rawRefeicoes.filter(r => r.nome_refeicao.includes(categoria));
+      const pratos = rawRefeicoes.filter(r => (r.regime || 'bulk').toLowerCase() === currentRegime && r.nome_refeicao.includes(categoria));
+      
       document.getElementById('view-pratos').innerHTML = pratos.map(p => `
         <div class="card-item" onclick="openDetalhe(${p.id})">
           <div class="card-info">
@@ -100,6 +162,7 @@
           </div>
           <div class="price-tag">${p.calorias_totais} kcal</div>
         </div>`).join('');
+      
       navigateTo('pratos', categoria);
     }
 
@@ -110,18 +173,15 @@
 
       let ingHtml = '';
       if (Array.isArray(ingredientes) && ingredientes.length > 0) {
-        ingHtml = ingredientes.map(i => {
-          const imgUrl = `https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=150&auto=format&fit=crop&q=60&ixlib=rb-4.0.3`;
-          return `
-            <div class="card-item" onclick="openProdutos(${i.id}, '${i.nome.replace(/'/g, "")}')">
-              <img class="prod-img" src="${i.imagem_url || imgUrl}" alt="Ingrediente">
-              <div class="card-info">
-                <h3>${i.nome}</h3>
-                <div class="subtitle">${i.quantidade_descricao}</div>
-              </div>
-              <span>Ver marcas ❯</span>
-            </div>`;
-        }).join('');
+        ingHtml = ingredientes.map(i => `
+          <div class="card-item" onclick="openProdutos(${i.id}, '${i.nome.replace(/'/g, "")}')">
+            <img class="prod-img" src="https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=150&auto=format&fit=crop&q=60" alt="Ingrediente">
+            <div class="card-info">
+              <h3>${i.nome}</h3>
+              <div class="subtitle">${i.quantidade_descricao}</div>
+            </div>
+            <span>Ver marcas ❯</span>
+          </div>`).join('');
       } else {
         ingHtml = `<div class="card-item"><div class="card-info"><p style="margin:0;">${prato.ingredientes_descricao}</p></div></div>`;
       }
@@ -129,7 +189,7 @@
       document.getElementById('view-detalhe').innerHTML = `
         <h2>${prato.nome_refeicao}</h2>
         <div style="margin-bottom:16px;" class="price-tag">🔥 ${prato.calorias_totais} kcal | P:${prato.proteina_g}g | C:${prato.carbs_g}g | G:${prato.gordura_g}g</div>
-        <h3>INGREDIENTES</h3>
+        <h3>INGREDIENTES (${currentRegime.toUpperCase()})</h3>
         ${ingHtml}
       `;
       navigateTo('detalhe', 'Ingredientes');
@@ -147,8 +207,8 @@
             <img class="prod-img" src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&auto=format&fit=crop&q=60" alt="Produto">
             <div class="card-info">
               <h3>${prod.nome_produto}</h3>
-              <div class="subtitle">Marca: ${prod.marca || 'Generica'}</div>
-              <div class="subtitle">${prod.supermercado || 'Supermercado'}</div>
+              <div class="subtitle">Marca: ${prod.marca || 'Genérica'}</div>
+              <div class="subtitle">${prod.supermercado || 'Supermercados'}</div>
             </div>
             <div class="price-tag">${prod.preco_atual ? prod.preco_atual + ' €' : 'Disponível'}</div>
           </div>
@@ -206,6 +266,7 @@
     // --- SISTEMA DE NAVEGAÇÃO ---
     function navigateTo(viewId, title) {
       document.querySelectorAll('.container > div').forEach(el => el.classList.add('hidden'));
+      document.getElementById('regime-bar').classList.add('hidden'); // Esconde o seletor quando entra nos detalhes
       document.getElementById(`view-${viewId}`).classList.remove('hidden');
       document.getElementById('page-title').innerText = title;
       document.getElementById('btn-back').classList.remove('hidden');
@@ -216,6 +277,11 @@
       navigationStack.pop();
       const previousView = navigationStack[navigationStack.length - 1];
       document.querySelectorAll('.container > div').forEach(el => el.classList.add('hidden'));
+      
+      if (previousView === 'categorias') {
+        document.getElementById('regime-bar').classList.remove('hidden');
+      }
+
       document.getElementById(`view-${previousView}`).classList.remove('hidden');
       
       if (navigationStack.length === 1) {
@@ -234,17 +300,20 @@
       if (tab === 'dieta') {
         navigationStack = ['categorias'];
         document.getElementById('nav-dieta').classList.add('active');
+        document.getElementById('regime-bar').classList.remove('hidden');
         document.getElementById('view-categorias').classList.remove('hidden');
         document.getElementById('page-title').innerText = 'Refeições do Dia';
       } else if (tab === 'treinos') {
         navigationStack = ['treinos-dias'];
         document.getElementById('nav-treinos').classList.add('active');
+        document.getElementById('regime-bar').classList.add('hidden');
         renderTreinosDias();
         document.getElementById('view-treinos-dias').classList.remove('hidden');
         document.getElementById('page-title').innerText = 'Plano de Treino';
       } else if (tab === 'historico') {
         navigationStack = ['historico'];
         document.getElementById('nav-historico').classList.add('active');
+        document.getElementById('regime-bar').classList.add('hidden');
         renderHistorico();
         document.getElementById('view-historico').classList.remove('hidden');
         document.getElementById('page-title').innerText = 'Histórico de Avaliações';
