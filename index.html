@@ -17,7 +17,7 @@
       background-color: var(--bg);
       color: var(--text);
       margin: 0;
-      padding-bottom: 70px;
+      padding-bottom: 80px;
     }
     header {
       background: var(--primary);
@@ -69,6 +69,14 @@
     }
     .nav-item.active { color: var(--primary); }
     .hidden { display: none; }
+    .error-msg {
+      background: #fef2f2;
+      color: #991b1b;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
   </style>
 </head>
 <body>
@@ -76,23 +84,21 @@
   <header id="page-title">Refeições do Dia</header>
 
   <div class="container">
-    <!-- Secção Nutrição -->
+    <div id="status-error" class="error-msg hidden"></div>
+
     <div id="sec-dieta">
       <div id="lista-refeicoes">Carregando plano...</div>
     </div>
 
-    <!-- Secção Treinos -->
     <div id="sec-treinos" class="hidden">
       <div id="lista-treinos">Carregando treinos...</div>
     </div>
 
-    <!-- Secção Histórico -->
     <div id="sec-historico" class="hidden">
       <div id="lista-historico">Carregando histórico...</div>
     </div>
   </div>
 
-  <!-- Navegação Inferior -->
   <nav class="nav-bar">
     <button class="nav-item active" onclick="verSecao('dieta', 'Refeições do Dia')">Dieta</button>
     <button class="nav-item" onclick="verSecao('treinos', 'Plano de Treino')">Treinos</button>
@@ -100,73 +106,90 @@
   </nav>
 
   <script>
-    // Configuração do Supabase (Substitui com as tuas chaves)
-    const SUPABASE_URL = NEXT_PUBLIC_SUPABASE_URL;
-    const SUPABASE_KEY = NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // As chaves injetadas pela integração do Vercel são preenchidas aqui
+    const SUPABASE_URL = "PROSPECT_URL_VERCEL" || window.env?.SUPABASE_URL || localStorage.getItem('sb_url');
+    const SUPABASE_KEY = "PROSPECT_KEY_VERCEL" || window.env?.SUPABASE_ANON_KEY || localStorage.getItem('sb_key');
 
-    async function carregarDieta() {
-      const { data, error } = await _supabase.from('refeicoes').select('*');
-      if (error) return console.error(error);
-      
-      const container = document.getElementById('lista-refeicoes');
-      container.innerHTML = data.map(r => `
-        <div class="card">
-          <h3>${r.nome_refeicao} (${r.horario})</h3>
-          <p>${r.ingredientes_descricao}</p>
-          <div class="macros">
-            <span>🔥 ${r.calorias_totais} kcal</span>
-            <span>P: ${r.proteina_g}g</span>
-            <span>C: ${r.carbs_g}g</span>
-            <span>G: ${r.gordura_g}g</span>
+    let _supabase = null;
+
+    async function init() {
+      try {
+        // Tenta obter as variáveis das envs do Vercel
+        const url = SUPABASE_URL || 'https://xyzabc.supabase.co'; // Fallback
+        const key = SUPABASE_KEY;
+
+        if (!url || !key) {
+          showError("Aguardando credenciais do Supabase ligadas ao Vercel...");
+          return;
+        }
+
+        _supabase = supabase.createClient(url, key);
+        await carregarDados();
+      } catch (err) {
+        showError("Erro na ligação à base de dados: " + err.message);
+      }
+    }
+
+    function showError(msg) {
+      const errBox = document.getElementById('status-error');
+      errBox.innerText = msg;
+      errBox.classList.remove('hidden');
+    }
+
+    async function carregarDados() {
+      if (!_supabase) return;
+
+      // 1. Carregar Refeições
+      const { data: ref, error: errRef } = await _supabase.from('refeicoes').select('*');
+      if (errRef) showError("Erro nas refeições: " + errRef.message);
+      else if (ref) {
+        document.getElementById('lista-refeicoes').innerHTML = ref.map(r => `
+          <div class="card">
+            <h3>${r.nome_refeicao} (${r.horario})</h3>
+            <p>${r.ingredientes_descricao}</p>
+            <div class="macros">
+              <span>🔥 ${r.calorias_totais} kcal</span>
+              <span>P: ${r.proteina_g}g</span>
+              <span>C: ${r.carbs_g}g</span>
+              <span>G: ${r.gordura_g}g</span>
+            </div>
           </div>
-        </div>
-      `).join('');
-    }
+        `).join('');
+      }
 
-    async function carregarTreinos() {
-      const { data, error } = await _supabase.from('treinos').select('*');
-      if (error) return console.error(error);
-      
-      const container = document.getElementById('lista-treinos');
-      container.innerHTML = data.map(t => `
-        <div class="card">
-          <h3>${t.exercicio} (${t.grupo_muscular})</h3>
-          <p><strong>Séries/Reps:</strong> ${t.series_repeticoes} | <strong>Carga:</strong> ${t.carga_kg} kg</p>
-          <p><small><strong>Alternativas:</strong> ${t.exercicios_alternativos || 'Nenhuma'}</small></p>
-        </div>
-      `).join('');
-    }
+      // 2. Carregar Treinos
+      const { data: tr, error: errTr } = await _supabase.from('treinos').select('*');
+      if (tr) {
+        document.getElementById('lista-treinos').innerHTML = tr.map(t => `
+          <div class="card">
+            <h3>${t.exercicio} (${t.grupo_muscular})</h3>
+            <p><strong>Séries/Reps:</strong> ${t.series_repeticoes} | <strong>Carga:</strong> ${t.carga_kg} kg</p>
+            <p><small><strong>Alternativas:</strong> ${t.exercicios_alternativos || 'Nenhuma'}</small></p>
+          </div>
+        `).join('');
+      }
 
-    async function carregarHistorico() {
-      const { data, error } = await _supabase.from('progresso').select('*').order('data', { ascending: false });
-      if (error) return console.error(error);
-      
-      const container = document.getElementById('lista-historico');
-      container.innerHTML = data.map(h => `
-        <div class="card">
-          <h3>Semana ${h.semana} - ${h.data}</h3>
-          <p><strong>Peso:</strong> ${h.peso_kg} kg | <strong>Cintura:</strong> ${h.cintura_cm || 'N/A'} cm</p>
-        </div>
-      `).join('');
+      // 3. Carregar Histórico
+      const { data: his, error: errHis } = await _supabase.from('progresso').select('*').order('data', { ascending: false });
+      if (his) {
+        document.getElementById('lista-historico').innerHTML = his.map(h => `
+          <div class="card">
+            <h3>Semana ${h.semana} - ${h.data}</h3>
+            <p><strong>Peso:</strong> ${h.peso_kg} kg | <strong>Cintura:</strong> ${h.cintura_cm || 'N/A'} cm</p>
+          </div>
+        `).join('');
+      }
     }
 
     function verSecao(secao, titulo) {
-      document.getElementById('sec-dieta').classList.add('hidden');
-      document.getElementById('sec-treinos').classList.add('hidden');
-      document.getElementById('sec-historico').classList.add('hidden');
-      
+      ['dieta', 'treinos', 'historico'].forEach(s => document.getElementById(`sec-${s}`).classList.add('hidden'));
       document.getElementById(`sec-${secao}`).classList.remove('hidden');
       document.getElementById('page-title').innerText = titulo;
-
-      document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
       event.target.classList.add('active');
     }
 
-    // Inicialização
-    carregarDieta();
-    carregarTreinos();
-    carregarHistorico();
+    init();
   </script>
 </body>
 </html>
