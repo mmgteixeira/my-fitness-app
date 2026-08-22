@@ -11,12 +11,12 @@
     .back-btn { background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .container { padding: 16px; max-width: 600px; margin: 0 auto; }
     .card-item { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 12px; }
-    .prod-img { width: 60px; height: 60px; object-fit: contain; border-radius: 8px; background: #f1f5f9; }
+    .prod-img { width: 65px; height: 65px; object-fit: contain; border-radius: 8px; background: #ffffff; border: 1px solid #e2e8f0; padding: 2px; }
     .card-info { flex: 1; }
     .card-info h3 { margin: 0; font-size: 0.95rem; color: #1e293b; }
     .card-info .subtitle { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
-    .price-tag { font-size: 1rem; font-weight: bold; color: #16a34a; background: #f0fdf4; padding: 4px 8px; border-radius: 6px; }
-    .btn-update { background: #e2e8f0; border: none; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600; }
+    .price-tag { font-size: 0.95rem; font-weight: bold; color: #16a34a; background: #f0fdf4; padding: 4px 8px; border-radius: 6px; }
+    .btn-search { background: #eff6ff; color: var(--primary); border: 1px solid #bfdbfe; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600; margin-top: 6px; }
     .nav-bar { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #e2e8f0; }
     .nav-item { background: none; border: none; font-weight: 600; color: #64748b; font-size: 0.9rem; cursor: pointer; }
     .nav-item.active { color: var(--primary); }
@@ -119,41 +119,52 @@
 
       document.getElementById('view-produtos').innerHTML = `
         <h3>Opções de Supermercado: ${nomeIngrediente}</h3>
-        ${Array.isArray(produtos) && produtos.length > 0 ? produtos.map(prod => `
-          <div class="card-item">
-            <img class="prod-img" src="${prod.imagem_url || 'https://via.placeholder.com/60?text=Produto'}" alt="Foto Produto">
-            <div class="card-info">
-              <h3>${prod.nome_produto}</h3>
-              <div class="subtitle">Marca: ${prod.marca || 'N/A'} | ${prod.loja_mais_barata || 'Geral'}</div>
-              <div class="subtitle">${prod.preco_unidade || ''}</div>
+        ${Array.isArray(produtos) && produtos.length > 0 ? produtos.map(prod => {
+          const imgFallback = `https://source.unsplash.com/150x150/?${encodeURIComponent(prod.nome_produto)}`;
+          const imgFinal = prod.imagem_url || imgFallback;
+          return `
+            <div class="card-item">
+              <img class="prod-img" src="${imgFinal}" onerror="this.src='${imgFallback}'" alt="Foto Produto">
+              <div class="card-info">
+                <h3>${prod.nome_produto}</h3>
+                <div class="subtitle">Marca: ${prod.marca || 'Variada'} | ${prod.supermercado || 'Supermercados'}</div>
+                <div class="subtitle">${prod.preco_unidade || ''}</div>
+              </div>
+              <div style="text-align:right;">
+                <div class="price-tag">${prod.preco_atual ? prod.preco_atual + ' €' : 'Em consulta'}</div>
+                <button class="btn-search" onclick="buscarFotoAuto(${prod.id}, '${prod.nome_produto}')">🔍 Buscar Foto</button>
+              </div>
             </div>
-            <div style="text-align:right;">
-              <div class="price-tag">${prod.preco_atual ? prod.preco_atual + ' €' : 'S/ Preço'}</div>
-              <button class="btn-update" style="margin-top:6px;" onclick="buscarPrecoAuto(${prod.id}, '${prod.nome_produto}')">🔄 Atualizar</button>
-            </div>
-          </div>
-        `).join('') : '<p>Nenhum produto cadastrado.</p>'}
+          `;
+        }).join('') : '<p>Nenhum produto cadastrado.</p>'}
       `;
       navigateTo('produtos', 'Opções de Supermercado');
     }
 
-    async function buscarPrecoAuto(prodId, termo) {
-      alert("Procurando foto e preço atualizado do produto...");
+    async function buscarFotoAuto(prodId, nomeProduto) {
       try {
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/buscar-precos`, {
-          method: 'POST',
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ produto_id: prodId, termo_pesquisa: termo })
-        });
-        const result = await res.json();
-        if(result.success) {
-          alert(`Atualizado! Preço: ${result.preco}€`);
-          location.reload();
+        // Procura foto oficial de marca na API Open Food Facts Portugal
+        const url = `https://pt.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(nomeProduto)}&search_simple=1&action=process&json=1`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.products && data.products.length > 0 && data.products[0].image_front_url) {
+          const fotoOficial = data.products[0].image_front_url;
+          
+          // Guardar a foto encontrada no Supabase
+          await fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?id=eq.${prodId}`, {
+            method: 'PATCH',
+            headers: { ...headers, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imagem_url: fotoOficial })
+          });
+
+          alert("Foto oficial encontrada e guardada com sucesso!");
+          openProdutos(prodId, nomeProduto);
         } else {
-          alert("Não foi possível encontrar a foto e o preço exatos do produto.");
+          alert("A usar foto ilustrativa de alta qualidade para este produto.");
         }
       } catch(e) {
-        alert("Erro na ligação à função de busca.");
+        console.error("Erro na busca de imagem:", e);
       }
     }
 
