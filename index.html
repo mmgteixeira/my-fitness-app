@@ -106,24 +106,20 @@
   </nav>
 
   <script>
-    // As chaves injetadas pela integração do Vercel são preenchidas aqui
-    const SUPABASE_URL = "PROSPECT_URL_VERCEL" || window.env?.SUPABASE_URL || localStorage.getItem('sb_url');
-    const SUPABASE_KEY = "PROSPECT_KEY_VERCEL" || window.env?.SUPABASE_ANON_KEY || localStorage.getItem('sb_key');
+    // Coloca diretamente o teu URL do Supabase e a tua Anon Key pública aqui
+    const SUPABASE_URL = "https://TEU_PROJECTO.supabase.co"; 
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."; 
 
     let _supabase = null;
 
     async function init() {
       try {
-        // Tenta obter as variáveis das envs do Vercel
-        const url = SUPABASE_URL || 'https://xyzabc.supabase.co'; // Fallback
-        const key = SUPABASE_KEY;
-
-        if (!url || !key) {
-          showError("Aguardando credenciais do Supabase ligadas ao Vercel...");
+        if (!SUPABASE_URL || SUPABASE_URL.includes("TEU_PROJECTO")) {
+          showError("Aviso: Substitui as variáveis SUPABASE_URL e SUPABASE_KEY no código com os teus dados do Supabase.");
           return;
         }
 
-        _supabase = supabase.createClient(url, key);
+        _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         await carregarDados();
       } catch (err) {
         showError("Erro na ligação à base de dados: " + err.message);
