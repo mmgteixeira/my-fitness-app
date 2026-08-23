@@ -438,44 +438,45 @@
     }
 
     function calcularIntervaloCalorias(regime) {
-      const refeicoesFiltradas = rawRefeicoes.filter(r => (r.regime || 'bulk').toLowerCase() === regime);
-      if (refeicoesFiltradas.length === 0) {
-        return regime === 'bulk' ? '2900 - 3100' : '2100 - 2300';
-      }
+  const refeicoesFiltradas = rawRefeicoes.filter(r => (r.regime || 'bulk').toLowerCase() === regime);
 
-      // Agrupa os pratos/opções pelo tipo de refeição
-      let porCategoria = {};
-      refeicoesFiltradas.forEach(r => {
-        const cat = r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim().toLowerCase();
-        if (!porCategoria[cat]) porCategoria[cat] = [];
-        porCategoria[cat].push(parseFloat(r.calorias_totais) || 0);
-      });
+  // Se não existirem refeições para este regime na base de dados, indica que está sem dados
+  if (refeicoesFiltradas.length === 0) {
+    return 'Sem plano'; // ou podes colocar '0'
+  }
 
-      let minTotal = 0;
-      let maxTotal = 0;
+  // Agrupa os pratos/opções pelo tipo de refeição
+  let porCategoria = {};
+  refeicoesFiltradas.forEach(r => {
+    const cat = r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim().toLowerCase();
+    if (!porCategoria[cat]) porCategoria[cat] = [];
+    porCategoria[cat].push(parseFloat(r.calorias_totais) || 0);
+  });
 
-      // Para cada refeição do dia, pega na opção mínima e máxima disponível
-      Object.values(porCategoria).forEach(caloriasList => {
-        if (caloriasList.length > 0) {
-          minTotal += Math.min(...caloriasList);
-          maxTotal += Math.max(...caloriasList);
-        }
-      });
+  let minTotal = 0;
+  let maxTotal = 0;
 
-      if (minTotal === 0 && maxTotal === 0) {
-        return regime === 'bulk' ? '2900 - 3100' : '2100 - 2300';
-      }
-
-      // Arredonda a centenas para um formato limpo (ex: 2900 - 3100)
-      const minArredondado = Math.round(minTotal / 50) * 50;
-      const maxArredondado = Math.round(maxTotal / 50) * 50;
-
-      if (minArredondado === maxArredondado) {
-        return `~${minArredondado}`;
-      }
-
-      return `${minArredondado} - ${maxArredondado}`;
+  // Para cada refeição do dia, calcula a opção mínima e máxima disponível
+  Object.values(porCategoria).forEach(caloriasList => {
+    if (caloriasList.length > 0) {
+      minTotal += Math.min(...caloriasList);
+      maxTotal += Math.max(...caloriasList);
     }
+  });
+
+  if (minTotal === 0 && maxTotal === 0) {
+    return 'Sem plano';
+  }
+
+  const minArredondado = Math.round(minTotal / 50) * 50;
+  const maxArredondado = Math.round(maxTotal / 50) * 50;
+
+  if (minArredondado === maxArredondado) {
+    return `~${minArredondado}`;
+  }
+
+  return `${minArredondado} - ${maxArredondado}`;
+}
 
     function setRegime(regime) {
       currentRegime = regime;
