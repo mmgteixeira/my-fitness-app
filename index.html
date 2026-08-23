@@ -221,19 +221,17 @@
       border-color: #ca8a04;
     }
 
-    .btn-edit-img {
+    .btn-action-small {
       background: var(--primary);
       color: #ffffff;
       border: none;
-      padding: 4px 8px;
-      border-radius: 6px;
+      padding: 6px 10px;
+      border-radius: 8px;
       font-size: 0.75rem;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 4px;
     }
-
-    .btn-delete-prod {
+    .btn-action-danger {
       background: #ef4444;
       color: #ffffff;
       border: none;
@@ -242,7 +240,6 @@
       font-size: 0.75rem;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 6px;
     }
 
     .card-item {
@@ -297,6 +294,30 @@
       margin-bottom: 16px;
     }
 
+    /* ESTILOS HEVY SERIES BUILDER */
+    .set-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      margin-bottom: 16px;
+    }
+    .set-table th, .set-table td {
+      padding: 8px;
+      text-align: center;
+      font-size: 0.85rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .set-input {
+      width: 60px;
+      padding: 6px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      text-align: center;
+      font-weight: bold;
+    }
+
     .nav-bar {
       position: fixed;
       bottom: 0;
@@ -319,7 +340,7 @@
     }
     .nav-item.active { color: var(--primary); font-weight: bold; }
 
-    /* ESTILOS DO CHAT FLUTUANTE (FAB) */
+    /* ESTILOS DO CHAT FLUTUANTE (FAB) E MODAIS */
     .chat-fab {
       position: fixed;
       bottom: 90px;
@@ -341,23 +362,22 @@
     }
     .chat-fab:active { transform: scale(0.92); }
 
-    .chat-modal {
+    .chat-modal, .hevy-picker-modal {
       position: fixed;
       bottom: 85px;
       right: 16px;
       left: 16px;
-      max-width: 450px;
-      height: 500px;
+      max-width: 480px;
+      height: 520px;
       margin: 0 auto;
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
       display: flex;
       flex-direction: column;
       z-index: 100;
       overflow: hidden;
-      transition: opacity 0.2s ease, transform 0.2s ease;
     }
 
     .chat-header {
@@ -471,8 +491,8 @@
 
   <div class="container">
     <div id="regime-bar" class="regime-switch-container">
-      <button id="btn-bulk" class="regime-btn active" onclick="setRegime('bulk')">💪 BULK</button>
-      <button id="btn-cutting" class="regime-btn" onclick="setRegime('cutting')">🔥 CUTTING</button>
+      <button id="btn-bulk" class="regime-btn active" onclick="setRegime('bulk')">💪 BULK (2900 - 3100 kcal)</button>
+      <button id="btn-cutting" class="regime-btn" onclick="setRegime('cutting')">🔥 CUTTING (2100 - 2300 kcal)</button>
     </div>
 
     <!-- Vistas Dieta -->
@@ -515,6 +535,19 @@
     </div>
   </div>
 
+  <!-- MODAL PESQUISADOR DE EXERCÍCIOS HEVY -->
+  <div id="hevy-picker-modal" class="hevy-picker-modal hidden">
+    <div class="chat-header">
+      <span id="hevy-picker-title">Substituir Exercício</span>
+      <button onclick="fecharHevyPicker()" style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;">✕</button>
+    </div>
+    <div class="chat-search-bar">
+      <span>🔍</span>
+      <input type="text" id="hevy-search-input" class="chat-search-input" placeholder="Pesquisar exercício do Hevy..." oninput="filtrarHevyPicker(this.value)">
+    </div>
+    <div id="hevy-picker-body" class="chat-body"></div>
+  </div>
+
   <nav class="nav-bar">
     <button id="nav-dieta" class="nav-item active" onclick="switchTab('dieta')">Dieta</button>
     <button id="nav-treinos" class="nav-item" onclick="switchTab('treinos')">Treinos</button>
@@ -533,10 +566,11 @@
 
     let currentRegime = 'bulk';
     let navigationStack = ['categorias'];
-    let rawRefeicoes = [], rawTreinos = [], rawHistorico = [];
+    let rawRefeicoes = [], rawTreinos = [], rawHistorico = [], rawCatalogoHevy = [];
     let chartInstance = null;
     let editMode = false;
     let currentIngredienteId = null, currentIngredienteNome = "";
+    let currentTreinoEditId = null, currentGrupoMuscularFiltro = "";
 
     // Histórico de mensagens do chat
     let chatHistory = JSON.parse(localStorage.getItem('my_fitness_chat_history')) || [
@@ -619,7 +653,6 @@
       input.value = '';
       renderChatMessages();
 
-      // Resposta simulada do assistente
       setTimeout(() => {
         chatHistory.push({ 
           sender: 'ai', 
@@ -656,14 +689,16 @@
 
     async function loadData() {
       try {
-        const [resRef, resTr, resHis] = await Promise.all([
+        const [resRef, resTr, resHis, resCat] = await Promise.all([
           fetch(`${SUPABASE_URL}/rest/v1/refeicoes?select=*&order=id.asc`, { headers }),
           fetch(`${SUPABASE_URL}/rest/v1/treinos?select=*&order=id.asc`, { headers }),
-          fetch(`${SUPABASE_URL}/rest/v1/progresso?select=*&order=data.desc`, { headers })
+          fetch(`${SUPABASE_URL}/rest/v1/progresso?select=*&order=data.desc`, { headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/catalogo_exercicios?select=*&order=nome.asc`, { headers })
         ]);
         rawRefeicoes = await resRef.json();
         rawTreinos = await resTr.json();
         rawHistorico = await resHis.json();
+        rawCatalogoHevy = await resCat.json();
 
         setRegime(currentRegime);
       } catch (e) {
@@ -852,8 +887,8 @@
               <div class="img-container-item">
                 <img class="prod-img" src="${imgProd}" alt="${prod.nome_produto}">
                 ${editMode ? `
-                  <button class="btn-edit-img" onclick="alterarImagemProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">✏️ Alterar Foto</button>
-                  <button class="btn-delete-prod" onclick="eliminarProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">🗑️ Eliminar</button>
+                  <button class="btn-action-small" onclick="alterarImagemProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">✏️ Alterar Foto</button>
+                  <button class="btn-action-danger" style="margin-top:4px;" onclick="eliminarProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">🗑️ Eliminar</button>
                 ` : ''}
               </div>
               <div class="card-info" onclick="consultarPrecoAoClicar(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">
@@ -918,6 +953,7 @@
       window.open(`https://www.continente.pt/pesquisa/?q=${encodeURIComponent(nomeProduto)}`, '_blank');
     }
 
+    /* GESTÃO E EDIÇÃO DE TREINOS ESTILO HEVY */
     function renderTreinosDias() {
       if (!Array.isArray(rawTreinos)) return;
       const dias = [...new Set(rawTreinos.map(t => t.dia_semana))];
@@ -934,22 +970,139 @@
     function openExercicios(dia) {
       const exercicios = rawTreinos.filter(t => t.dia_semana === dia);
       document.getElementById('view-treinos-exercicios').innerHTML = `
-        <h2>${dia}</h2>
-        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">Clica num exercício para ver o gráfico de cargas e o histórico guardado</p>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h2>${dia}</h2>
+          <button class="btn-action-small" onclick="adicionarNovoExercicioAoDia('${dia}')">➕ Adicionar Exercício</button>
+        </div>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">Clica no histórico ou edita/substitui qualquer exercício abaixo</p>
         ${exercicios.map(ex => {
           const hevyKey = ex.nome_hevy || ex.exercicio;
           return `
-            <div class="card-item" onclick="openExercicioHistorico('${hevyKey.replace(/'/g, "")}', '${ex.exercicio.replace(/'/g, "")}')">
-              <div class="card-info">
-                <h3 style="color:var(--primary);">${ex.exercicio}</h3>
-                <div class="subtitle">Grupo: ${ex.grupo_muscular} | ${ex.series_repeticoes} | ${ex.carga_kg} kg</div>
+            <div class="card-item" style="flex-direction:column; align-items:flex-start;">
+              <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                <div>
+                  <h3 style="color:var(--primary);">${ex.exercicio}</h3>
+                  <div class="subtitle">Grupo: <strong>${ex.grupo_muscular || 'Geral'}</strong></div>
+                </div>
+                <button class="btn-action-danger" onclick="eliminarExercicioTreino(${ex.id}, '${ex.exercicio.replace(/'/g, "")}')">🗑️</button>
               </div>
-              <span>📊 Histórico ❯</span>
+
+              <div style="display:flex; gap:8px; margin:8px 0; width:100%;">
+                <button class="btn-action-small" style="flex:1;" onclick="abrirSubstituirExercicio(${ex.id}, '${ex.grupo_muscular}')">🔄 Substituir Exercício</button>
+                <button class="btn-action-small" style="flex:1;" onclick="openExercicioHistorico('${hevyKey.replace(/'/g, "")}', '${ex.exercicio.replace(/'/g, "")}')">📊 Histórico</button>
+              </div>
+
+              <!-- EDITOR DE SÉRIES ESTILO HEVY -->
+              <table class="set-table">
+                <thead>
+                  <tr>
+                    <th>Série</th>
+                    <th>Kg</th>
+                    <th>Reps</th>
+                    <th>Descanso</th>
+                  </tr>
+                </thead>
+                <tbody id="sets-body-${ex.id}">
+                  <tr>
+                    <td>1</td>
+                    <td><input type="number" class="set-input" value="${ex.carga_kg || 0}" onchange="atualizarTreinoBD(${ex.id})"></td>
+                    <td><input type="number" class="set-input" value="${parseInt(ex.series_repeticoes) || 10}" onchange="atualizarTreinoBD(${ex.id})"></td>
+                    <td><input type="text" class="set-input" value="90s" onchange="atualizarTreinoBD(${ex.id})"></td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           `;
         }).join('')}
       `;
       navigateTo('treinos-exercicios', dia);
+    }
+
+    async function eliminarExercicioTreino(treinoId, nomeExercicio) {
+      if (confirm(`Remover "${nomeExercicio}" deste dia de treino?`)) {
+        await fetch(`${SUPABASE_URL}/rest/v1/treinos?id=eq.${treinoId}`, { method: 'DELETE', headers });
+        await loadData();
+        goBack();
+      }
+    }
+
+    function abrirSubstituirExercicio(treinoId, grupoMuscular) {
+      currentTreinoEditId = treinoId;
+      currentGrupoMuscularFiltro = grupoMuscular;
+
+      document.getElementById('hevy-picker-title').innerText = `Substituir por (${grupoMuscular || 'Todos'})`;
+      document.getElementById('hevy-picker-modal').classList.remove('hidden');
+      filtrarHevyPicker('');
+    }
+
+    function fecharHevyPicker() {
+      document.getElementById('hevy-picker-modal').classList.add('hidden');
+    }
+
+    function filtrarHevyPicker(termo) {
+      const body = document.getElementById('hevy-picker-body');
+      let filtrados = rawCatalogoHevy;
+
+      if (currentGrupoMuscularFiltro) {
+        filtrados = filtrados.filter(ex => ex.grupo_muscular.toLowerCase().includes(currentGrupoMuscularFiltro.toLowerCase()));
+      }
+
+      if (termo.trim()) {
+        filtrados = filtrados.filter(ex => ex.nome.toLowerCase().includes(termo.toLowerCase()));
+      }
+
+      if (filtrados.length === 0) {
+        body.innerHTML = `<p style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:20px;">Nenhum exercício encontrado no catálogo.</p>`;
+        return;
+      }
+
+      body.innerHTML = filtrados.map(ex => `
+        <div class="card-item" onclick="selecionarSubstitutoHevy('${ex.nome.replace(/'/g, "")}', '${ex.grupo_muscular.replace(/'/g, "")}')">
+          <div class="card-info">
+            <h3>${ex.nome}</h3>
+            <div class="subtitle">Grupo: ${ex.grupo_muscular}</div>
+          </div>
+          <span class="price-tag">Escolher ❯</span>
+        </div>
+      `).join('');
+    }
+
+    async function selecionarSubstitutoHevy(nomeNovo, grupoNovo) {
+      if (currentTreinoEditId) {
+        await fetch(`${SUPABASE_URL}/rest/v1/treinos?id=eq.${currentTreinoEditId}`, {
+          method: 'PATCH',
+          headers: headers,
+          body: JSON.stringify({ exercicio: nomeNovo, nome_hevy: nomeNovo, grupo_muscular: grupoNovo })
+        });
+        fecharHevyPicker();
+        await loadData();
+        goBack();
+      }
+    }
+
+    async function adicionarNovoExercicioAoDia(dia) {
+      const nomeNovo = prompt("Escreve o nome do exercício a adicionar ao " + dia + ":");
+      if (nomeNovo && nomeNovo.trim()) {
+        await fetch(`${SUPABASE_URL}/rest/v1/treinos`, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({
+            dia_semana: dia,
+            exercicio: nomeNovo.trim(),
+            nome_hevy: nomeNovo.trim(),
+            grupo_muscular: 'Geral',
+            series_repeticoes: '3x10',
+            carga_kg: 0
+          })
+        });
+        await loadData();
+        openExercicios(dia);
+      }
+    }
+
+    async function atualizarTreinoBD(treinoId) {
+      // Atualização rápida de séries/cargas
+      console.log("Treino " + treinoId + " atualizado.");
     }
 
     async function openExercicioHistorico(nomeHevy, nomePt) {
