@@ -590,50 +590,90 @@
 
     // Mapeador Inteligente de GIFs por Nome e Grupo Muscular (Português/Inglês)
     function obterGifExercicio(nomeExercicio, grupoMuscular) {
-      const nome = (nomeExercicio || "").toLowerCase();
-      const grupo = (grupoMuscular || "").toLowerCase();
+  const nome = (nomeExercicio || "").toLowerCase();
+  const grupo = (grupoMuscular || "").toLowerCase();
 
-      if (nome.includes("supino inclin")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Incline-Dumbbell-Press.gif";
-      if (nome.includes("supino declin")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Decline-Dumbbell-Press.gif";
-      if (nome.includes("supino")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Press.gif";
-      if (nome.includes("crucifixo") || nome.includes("pec deck") || nome.includes("voador")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Pec-Deck-Fly.gif";
-      if (nome.includes("flexão") || nome.includes("pushup")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Push-Up.gif";
+  // 1. Mapeamento por Nomes Específicos da Hevy / Português
+  if (nome.includes("chest fly (machine)") || nome.includes("voador") || nome.includes("aberturas na máquina") || nome.includes("pec deck")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Pec-Deck-Fly.gif";
 
-      if (nome.includes("puxada")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lat-Pulldown.gif";
-      if (nome.includes("remada")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Two-Arm-Dumbbell-Bent-Over-Row.gif";
-      if (nome.includes("barra fixa") || nome.includes("chinup")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Pull-up.gif";
+  if (nome.includes("incline bench press") || nome.includes("supino inclinado")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Incline-Dumbbell-Press.gif";
 
-      if (nome.includes("desenvolvimento") || nome.includes("press de ombro")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Shoulder-Press.gif";
-      if (nome.includes("elevação lateral")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif";
-      if (nome.includes("elevação frontal")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Front-Raise.gif";
+  if (nome.includes("decline bench press") || nome.includes("supino declinado")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Decline-Dumbbell-Press.gif";
 
-      if (nome.includes("rosca martelo")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Hammer-Curl.gif";
-      if (nome.includes("rosca scott")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Preacher-Curl.gif";
-      if (nome.includes("rosca") || nome.includes("bicep")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Curl.gif";
+  if (nome.includes("bench press") || nome.includes("supino")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Press.gif";
 
-      if (nome.includes("testa")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lying-Triceps-Extension.gif";
-      if (nome.includes("tricep") || nome.includes("tríceps") || nome.includes("polia")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Pushdown.gif";
+  if (nome.includes("lat pulldown") || nome.includes("puxada alta")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lat-Pulldown.gif";
 
-      if (nome.includes("agachamento") || nome.includes("squat")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Goblet-Squat.gif";
-      if (nome.includes("leg press")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Press.gif";
-      if (nome.includes("afundo") || nome.includes("lunge") || nome.includes("passada")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lunge.gif";
-      if (nome.includes("extensora") || nome.includes("extensão de perna")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Extension.gif";
-      if (nome.includes("flexora") || nome.includes("mesa flexora")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lying-Leg-Curl.gif";
-      if (nome.includes("terra") || nome.includes("romano") || nome.includes("stiff")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Romanian-Deadlift.gif";
-      if (nome.includes("panturrilha") || nome.includes("gêmeos")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Standing-Calf-Raise.gif";
+  if (nome.includes("row") || nome.includes("remada")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Two-Arm-Dumbbell-Bent-Over-Row.gif";
 
-      if (nome.includes("abdominal") || nome.includes("prancha") || nome.includes("crunch")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Crunch.gif";
+  if (nome.includes("pullup") || nome.includes("pull-up") || nome.includes("barra fixa")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Pull-up.gif";
 
-      if (grupo.includes("peito")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Press.gif";
-      if (grupo.includes("dorsais") || grupo.includes("costas")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lat-Pulldown.gif";
-      if (grupo.includes("ombro")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif";
-      if (grupo.includes("bíceps")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Curl.gif";
-      if (grupo.includes("tríceps")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Pushdown.gif";
-      if (grupo.includes("quadríceps") || grupo.includes("perna")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Press.gif";
-      if (grupo.includes("abdominais")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Crunch.gif";
+  if (nome.includes("shoulder press") || nome.includes("desenvolvimento") || nome.includes("press de ombro")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Shoulder-Press.gif";
 
-      return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Press.gif";
-    }
+  if (nome.includes("lateral raise") || nome.includes("elevação lateral")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif";
+
+  if (nome.includes("front raise") || nome.includes("elevação frontal")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Front-Raise.gif";
+
+  if (nome.includes("hammer curl") || nome.includes("rosca martelo")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Hammer-Curl.gif";
+
+  if (nome.includes("preacher curl") || nome.includes("scott")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Preacher-Curl.gif";
+
+  if (nome.includes("bicep curl") || nome.includes("rosca")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Curl.gif";
+
+  if (nome.includes("triceps pushdown") || nome.includes("triceps na polia") || nome.includes("puxada de triceps")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Pushdown.gif";
+
+  if (nome.includes("lying triceps extension") || nome.includes("triceps testa")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lying-Triceps-Extension.gif";
+
+  if (nome.includes("leg press")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Press.gif";
+
+  if (nome.includes("squat") || nome.includes("agachamento")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Goblet-Squat.gif";
+
+  if (nome.includes("lunge") || nome.includes("afundo") || nome.includes("passada")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lunge.gif";
+
+  if (nome.includes("leg extension") || nome.includes("extensora") || nome.includes("extensão de perna")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Extension.gif";
+
+  if (nome.includes("leg curl") || nome.includes("flexora") || nome.includes("mesa flexora")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lying-Leg-Curl.gif";
+
+  if (nome.includes("deadlift") || nome.includes("terra") || nome.includes("romano") || nome.includes("stiff")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Romanian-Deadlift.gif";
+
+  if (nome.includes("calf") || nome.includes("panturrilha")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Standing-Calf-Raise.gif";
+
+  if (nome.includes("crunch") || nome.includes("abdominal") || nome.includes("prancha")) 
+    return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Crunch.gif";
+
+  // 2. Fallbacks por Grupo Muscular
+  if (grupo.includes("peito")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Pec-Deck-Fly.gif";
+  if (grupo.includes("dorsais") || grupo.includes("costas")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lat-Pulldown.gif";
+  if (grupo.includes("ombro")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif";
+  if (grupo.includes("bíceps")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Curl.gif";
+  if (grupo.includes("tríceps")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Pushdown.gif";
+  if (grupo.includes("quadríceps") || grupo.includes("perna")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Press.gif";
+  if (grupo.includes("abdominais")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Crunch.gif";
+
+  return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Press.gif";
+}
 
     function changeTheme(themeName) {
       if (themeName === 'default') {
