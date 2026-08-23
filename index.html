@@ -237,87 +237,98 @@
     }
 
     async function openExercicioHistorico(nomeHevy, nomePt) {
-      // Procura registos na base de dados (primeiro pelo nome Hevy, depois pelo nome PT)
-      let res = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=eq.${encodeURIComponent(nomeHevy)}&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
-      let series = await res.json();
+  // 1. Procura o histórico do exercício no Supabase
+  let res = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=eq.${encodeURIComponent(nomeHevy)}&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
+  let series = await res.json();
 
-      if (!Array.isArray(series) || series.length === 0) {
-        res = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=eq.${encodeURIComponent(nomePt)}&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
-        series = await res.json();
-      }
+  if (!Array.isArray(series) || series.length === 0) {
+    res = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=eq.${encodeURIComponent(nomePt)}&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
+    series = await res.json();
+  }
 
-      let historicoHtml = '';
-      let chartLabels = [];
-      let chartData = [];
+  // 2. Constrói o nome da imagem baseado na chave Hevy (ex: "lateral_raise_dumbbell.gif")
+  const slugHevy = nomeHevy.toLowerCase().replace(/[^a-z0-9]/g, "_").replace(/_+/g, "_");
+  const urlAnimacao = `https://raw.githubusercontent.com/yuhas/free-exercise-db/main/exercises/${slugHevy}/0.jpg`;
+  const imgFallback = `https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=300&auto=format&fit=crop&q=60`;
 
-      if (Array.isArray(series) && series.length > 0) {
-        let porData = {};
-        series.forEach(s => {
-          const dt = s.historico_treinos && s.historico_treinos.data_inicio ? new Date(s.historico_treinos.data_inicio).toLocaleDateString('pt-PT') : 'Sessão Registada';
-          if (!porData[dt]) porData[dt] = [];
-          porData[dt].push(`${s.weight_kg || 0}kg × ${s.reps || 0}`);
-        });
+  let historicoHtml = '';
+  let chartLabels = [];
+  let chartData = [];
 
-        const entradas = Object.entries(porData).reverse();
-        chartLabels = entradas.map(e => e[0]);
-        chartData = entradas.map(e => {
-          const pesos = e[1].map(str => parseFloat(str.split('kg')[0]) || 0);
-          return Math.max(...pesos);
-        });
+  if (Array.isArray(series) && series.length > 0) {
+    let porData = {};
+    series.forEach(s => {
+      const dt = s.historico_treinos && s.historico_treinos.data_inicio ? new Date(s.historico_treinos.data_inicio).toLocaleDateString('pt-PT') : 'Sessão Registada';
+      if (!porData[dt]) porData[dt] = [];
+      porData[dt].push(`${s.weight_kg || 0}kg × ${s.reps || 0}`);
+    });
 
-        historicoHtml = Object.entries(porData).map(([dt, list]) => `
-          <div class="card-item" style="cursor:default; justify-content:space-between;">
-            <div>
-              <strong>${dt}</strong>
-              <div class="subtitle">${list.join(' | ')}</div>
-            </div>
-            <span class="price-tag">${Math.max(...list.map(s => parseFloat(s.split('kg')[0])||0))} kg max</span>
-          </div>
-        `).join('');
-      } else {
-        historicoHtml = `<p style="color:#64748b; text-align:center; padding:20px;">Ainda não existem séries guardadas para <strong>${nomePt}</strong>.</p>`;
-      }
+    const entradas = Object.entries(porData).reverse();
+    chartLabels = entradas.map(e => e[0]);
+    chartData = entradas.map(e => {
+      const pesos = e[1].map(str => parseFloat(str.split('kg')[0]) || 0);
+      return Math.max(...pesos);
+    });
 
-      document.getElementById('view-exercicio-historico').innerHTML = `
-        <h2>${nomePt}</h2>
-        ${chartData.length > 0 ? `
-          <div class="chart-box">
-            <canvas id="evolutionChart" height="200"></canvas>
-          </div>
-        ` : ''}
-        <h3>HISTÓRICO DE SESSÕES (HEVY)</h3>
-        ${historicoHtml}
-      `;
+    historicoHtml = Object.entries(porData).map(([dt, list]) => `
+      <div class="card-item" style="cursor:default; justify-content:space-between;">
+        <div>
+          <strong>${dt}</strong>
+          <div class="subtitle">${list.join(' | ')}</div>
+        </div>
+        <span class="price-tag">${Math.max(...list.map(s => parseFloat(s.split('kg')[0])||0))} kg max</span>
+      </div>
+    `).join('');
+  } else {
+    historicoHtml = `<p style="color:#64748b; text-align:center; padding:20px;">Ainda não existem séries guardadas para <strong>${nomePt}</strong>.</p>`;
+  }
 
-      navigateTo('exercicio-historico', 'Evolução do Exercício');
+  document.getElementById('view-exercicio-historico').innerHTML = `
+    <div style="text-align:center; margin-bottom:16px;">
+      <img src="${urlAnimacao}" onerror="this.src='${imgFallback}'" alt="Demonstração do Exercício" style="width:140px; height:140px; object-fit:contain; background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; padding:6px;">
+      <h2 style="margin:8px 0 2px 0;">${nomePt}</h2>
+      <span style="font-size:0.75rem; color:#64748b;">Hevy ID: <em>${nomeHevy}</em></span>
+    </div>
 
-      if (chartData.length > 0) {
-        setTimeout(() => {
-          const ctx = document.getElementById('evolutionChart').getContext('2d');
-          if (chartInstance) chartInstance.destroy();
-          chartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-              labels: chartLabels,
-              datasets: [{
-                label: 'Carga Máxima (kg)',
-                data: chartData,
-                borderColor: '#1d4ed8',
-                backgroundColor: 'rgba(29, 78, 216, 0.1)',
-                fill: true,
-                tension: 0.3,
-                pointRadius: 5
-              }]
-            },
-            options: {
-              responsive: true,
-              plugins: { legend: { display: true } },
-              scales: { y: { beginAtZero: false } }
-            }
-          });
-        }, 100);
-      }
-    }
+    ${chartData.length > 0 ? `
+      <div class="chart-box">
+        <canvas id="evolutionChart" height="200"></canvas>
+      </div>
+    ` : ''}
+    
+    <h3>HISTÓRICO DE SESSÕES (HEVY)</h3>
+    ${historicoHtml}
+  `;
+
+  navigateTo('exercicio-historico', 'Evolução do Exercício');
+
+  if (chartData.length > 0) {
+    setTimeout(() => {
+      const ctx = document.getElementById('evolutionChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: chartLabels,
+          datasets: [{
+            label: 'Carga Máxima (kg)',
+            data: chartData,
+            borderColor: '#1d4ed8',
+            backgroundColor: 'rgba(29, 78, 216, 0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: true } },
+          scales: { y: { beginAtZero: false } }
+        }
+      });
+    }, 100);
+  }
+}
 
     async function sincronizarHevy() {
       alert("A sincronizar dados recentes com o relógio/Hevy...");
