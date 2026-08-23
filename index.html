@@ -219,7 +219,7 @@
       const exercicios = rawTreinos.filter(t => t.dia_semana === dia);
       document.getElementById('view-treinos-exercicios').innerHTML = `
         <h2>${dia}</h2>
-        <p style="color:#64748b; font-size:0.85rem; margin-bottom:16px;">Clica num exercício para ver o gráfico de cargas e o histórico do Hevy</p>
+        <p style="color:#64748b; font-size:0.85rem; margin-bottom:16px;">Clica num exercício para ver o gráfico de cargas e o histórico guardado</p>
         ${exercicios.map(ex => {
           const hevyKey = ex.nome_hevy || ex.exercicio;
           return `
@@ -237,9 +237,14 @@
     }
 
     async function openExercicioHistorico(nomeHevy, nomePt) {
-      // Procura rigorosa por nome do Hevy
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=eq.${encodeURIComponent(nomeHevy)}&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
-      const series = await res.json();
+      // Procura registos na base de dados (primeiro pelo nome Hevy, depois pelo nome PT)
+      let res = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=eq.${encodeURIComponent(nomeHevy)}&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
+      let series = await res.json();
+
+      if (!Array.isArray(series) || series.length === 0) {
+        res = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=eq.${encodeURIComponent(nomePt)}&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
+        series = await res.json();
+      }
 
       let historicoHtml = '';
       let chartLabels = [];
@@ -248,7 +253,7 @@
       if (Array.isArray(series) && series.length > 0) {
         let porData = {};
         series.forEach(s => {
-          const dt = s.historico_treinos && s.historico_treinos.data_inicio ? new Date(s.historico_treinos.data_inicio).toLocaleDateString('pt-PT') : 'Recente';
+          const dt = s.historico_treinos && s.historico_treinos.data_inicio ? new Date(s.historico_treinos.data_inicio).toLocaleDateString('pt-PT') : 'Sessão Registada';
           if (!porData[dt]) porData[dt] = [];
           porData[dt].push(`${s.weight_kg || 0}kg × ${s.reps || 0}`);
         });
@@ -270,12 +275,11 @@
           </div>
         `).join('');
       } else {
-        historicoHtml = `<p style="color:#64748b; text-align:center; padding:20px;">Sem registos no Hevy para <strong>${nomePt}</strong> (Chave Hevy: <em>${nomeHevy}</em>).</p>`;
+        historicoHtml = `<p style="color:#64748b; text-align:center; padding:20px;">Ainda não existem séries guardadas para <strong>${nomePt}</strong>.</p>`;
       }
 
       document.getElementById('view-exercicio-historico').innerHTML = `
         <h2>${nomePt}</h2>
-        <p style="font-size:0.75rem; color:#64748b; margin-top:-8px; margin-bottom:16px;">Mapeado com Hevy: <em>${nomeHevy}</em></p>
         ${chartData.length > 0 ? `
           <div class="chart-box">
             <canvas id="evolutionChart" height="200"></canvas>
@@ -316,8 +320,7 @@
     }
 
     async function sincronizarHevy() {
-      alert("A procurar novas sessões e cargas no teu perfil do Hevy...");
-      location.reload();
+      alert("A sincronizar dados recentes com o relógio/Hevy...");
     }
 
     function renderHistorico() {
