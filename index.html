@@ -451,26 +451,48 @@
       renderCategorias();
     }
 
-    function renderCategorias() {
-      if (!Array.isArray(rawRefeicoes)) return;
-      const refeicoesFiltradas = rawRefeicoes.filter(r => (r.regime || 'bulk').toLowerCase() === currentRegime);
-      
-      if (refeicoesFiltradas.length === 0) {
-        document.getElementById('view-categorias').innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:20px;">Nenhum plano de <strong>${currentRegime.toUpperCase()}</strong> registado ainda.</p>`;
-        return;
-      }
+   function renderCategorias() {
+  if (!Array.isArray(rawRefeicoes)) return;
+  const refeicoesFiltradas = rawRefeicoes.filter(r => (r.regime || 'bulk').toLowerCase() === currentRegime);
+  
+  if (refeicoesFiltradas.length === 0) {
+    document.getElementById('view-categorias').innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:20px;">Nenhum plano de <strong>${currentRegime.toUpperCase()}</strong> registado ainda.</p>`;
+    return;
+  }
 
-      const categorias = [...new Set(refeicoesFiltradas.map(r => r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim()))];
-      
-      document.getElementById('view-categorias').innerHTML = categorias.map(cat => `
-        <div class="card-item" onclick="openPratos('${cat}')">
-          <div class="card-info">
-            <h3>${cat}</h3>
-            <div class="subtitle">${refeicoesFiltradas.filter(r => r.nome_refeicao.includes(cat)).length} opções no plano</div>
-          </div>
-          <span>❯</span>
-        </div>`).join('');
-    }
+  // 1. Ordem fixa definida para as refeições
+  const ordemRefeicoes = [
+    "Pequeno almoço",
+    "Meio da manhã",
+    "Almoço",
+    "Lanche",
+    "Jantar",
+    "Ceia"
+  ];
+
+  // 2. Extrai as categorias existentes nas refeições do regime atual
+  const categoriasExistentes = [...new Set(refeicoesFiltradas.map(r => r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim()))];
+
+  // 3. Ordena as categorias segundo a sequência definida (colocando outras no fim caso existam)
+  const categorias = categoriasExistentes.sort((a, b) => {
+    let idxA = ordemRefeicoes.findIndex(o => a.toLowerCase().includes(o.toLowerCase()));
+    let idxB = ordemRefeicoes.findIndex(o => b.toLowerCase().includes(o.toLowerCase()));
+    
+    if (idxA === -1) idxA = 99;
+    if (idxB === -1) idxB = 99;
+    
+    return idxA - idxB;
+  });
+
+  document.getElementById('view-categorias').innerHTML = categorias.map(cat => `
+    <div class="card-item" onclick="openPratos('${cat}')">
+      <div class="card-info">
+        <h3>${cat}</h3>
+        <div class="subtitle">${refeicoesFiltradas.filter(r => r.nome_refeicao.includes(cat)).length} opções no plano</div>
+      </div>
+      <span>❯</span>
+    </div>`).join('');
+}
 
     function openPratos(categoria) {
       const pratos = rawRefeicoes.filter(r => (r.regime || 'bulk').toLowerCase() === currentRegime && r.nome_refeicao.includes(categoria));
