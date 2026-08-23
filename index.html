@@ -147,11 +147,11 @@
     }
     .regime-btn {
       flex: 1;
-      padding: 10px;
+      padding: 10px 6px;
       border: none;
       border-radius: 20px;
       font-weight: bold;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       color: var(--text-muted);
       background: transparent;
       cursor: pointer;
@@ -318,8 +318,8 @@
 
   <div class="container">
     <div id="regime-bar" class="regime-switch-container">
-      <button id="btn-bulk" class="regime-btn active" onclick="setRegime('bulk')">💪 BULK</button>
-      <button id="btn-cutting" class="regime-btn" onclick="setRegime('cutting')">🔥 CUTTING</button>
+      <button id="btn-bulk" class="regime-btn active" onclick="setRegime('bulk')">💪 BULK (2900 - 3100 kcal)</button>
+      <button id="btn-cutting" class="regime-btn" onclick="setRegime('cutting')">🔥 CUTTING (2100 - 2300 kcal)</button>
     </div>
 
     <!-- Vistas Dieta -->
@@ -401,12 +401,13 @@
     function obterImagemAlimento(nomeTexto) {
       const nome = nomeTexto.toLowerCase();
       
+      if (nome.includes("bolacha") || nome.includes("maria")) return "https://www.deco.proteste.pt/-/media/edideco/images/home/alimentacao/bolachas/noticias/2024/bolachas%20maria/bolacha-maria.jpg?rev=80458379-37a7-43d8-87e2-708a8a54e949&hash=2795B700252AD4EBF578E0DB356E6302";
       if (nome.includes("leite") || nome.includes("uht")) return "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=200&auto=format&fit=crop&q=60";
       if (nome.includes("pão") || nome.includes("tosta") || nome.includes("forma")) return "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200&auto=format&fit=crop&q=60";
       if (nome.includes("manteiga") || nome.includes("amendoim")) return "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=200&auto=format&fit=crop&q=60";
       if (nome.includes("ovo") || nome.includes("ovos")) return "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=200&auto=format&fit=crop&q=60";
       if (nome.includes("abacate")) return "https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=200&auto=format&fit=crop&q=60";
-      if (nome.includes("iogurte") || nome.includes("skyr") || nome.includes("pudim")) return "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=200&auto=format&fit=crop&q=60";
+      if (nome.includes("iogurte") || nome.includes("skyr") || nome.includes("pudim")) return "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR-A_XpmNEgn4GZhewkO45fxKPKDpidKWKoEQnPRHNNSLPWaVj0W691fOQk&s=10";
       if (nome.includes("fiambre") || nome.includes("peru") || nome.includes("frango")) return "https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=200&auto=format&fit=crop&q=60";
       if (nome.includes("cereal") || nome.includes("aveia") || nome.includes("nestum")) return "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=200&auto=format&fit=crop&q=60";
       if (nome.includes("atum")) return "https://images.unsplash.com/photo-1599488615731-7e5c2823ff28?w=200&auto=format&fit=crop&q=60";
@@ -430,7 +431,7 @@
         rawTreinos = await resTr.json();
         rawHistorico = await resHis.json();
 
-        renderCategorias();
+        setRegime(currentRegime);
       } catch (e) {
         console.error("Erro ao carregar dados:", e);
       }
@@ -438,6 +439,23 @@
 
     function setRegime(regime) {
       currentRegime = regime;
+
+      // Cálculo do intervalo médio de calorias do regime
+      const refeicoesFiltradas = rawRefeicoes.filter(r => (r.regime || 'bulk').toLowerCase() === currentRegime);
+      let rangeStr = regime === 'bulk' ? '2900 - 3100' : '2100 - 2300';
+
+      if (refeicoesFiltradas.length > 0) {
+        const total = refeicoesFiltradas.reduce((acc, r) => acc + (parseFloat(r.calorias_totais) || 0), 0);
+        if (total > 0) {
+          const minCal = Math.round(total * 0.95);
+          const maxCal = Math.round(total * 1.05);
+          rangeStr = `${minCal} - ${maxCal}`;
+        }
+      }
+
+      document.getElementById('btn-bulk').innerText = `💪 BULK (${regime === 'bulk' ? rangeStr : '2900 - 3100'} kcal)`;
+      document.getElementById('btn-cutting').innerText = `🔥 CUTTING (${regime === 'cutting' ? rangeStr : '2100 - 2300'} kcal)`;
+
       document.getElementById('btn-bulk').classList.toggle('active', regime === 'bulk');
       document.getElementById('btn-cutting').classList.toggle('active', regime === 'cutting');
       
@@ -498,7 +516,6 @@
     }
 
     function openPratos(categoria) {
-      // Ordena os pratos da categoria pelo ID ascendente (ordem original de criação)
       const pratos = rawRefeicoes
         .filter(r => (r.regime || 'bulk').toLowerCase() === currentRegime && r.nome_refeicao.toLowerCase().includes(categoria.toLowerCase()))
         .sort((a, b) => a.id - b.id);
@@ -517,7 +534,6 @@
 
     async function openDetalhe(pratoId) {
       const prato = rawRefeicoes.find(r => r.id === pratoId);
-      // Garante a ordem exata dos ingredientes por id.asc
       const res = await fetch(`${SUPABASE_URL}/rest/v1/ingredientes?refeicao_id=eq.${pratoId}&select=*&order=id.asc`, { headers });
       const ingredientes = await res.json();
 
@@ -555,45 +571,44 @@
       }
     }
 
-   async function openProdutos(ingredienteId, nomeIngrediente) {
-  currentIngredienteId = ingredienteId;
-  currentIngredienteNome = nomeIngrediente;
+    async function openProdutos(ingredienteId, nomeIngrediente) {
+      currentIngredienteId = ingredienteId;
+      currentIngredienteNome = nomeIngrediente;
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?ingrediente_id=eq.${ingredienteId}&select=*&order=id.asc`, { headers });
-  const produtos = await res.json();
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?ingrediente_id=eq.${ingredienteId}&select=*&order=id.asc`, { headers });
+      const produtos = await res.json();
 
-  document.getElementById('view-produtos').innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-      <h3>Opções de Supermercado</h3>
-      <button class="edit-mode-btn ${editMode ? 'active' : ''}" onclick="toggleEditMode()">
-        ${editMode ? '✓ Concluir Edição' : '⚙️ Modo Edição'}
-      </button>
-    </div>
-    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">${nomeIngrediente}</p>
-    ${Array.isArray(produtos) && produtos.length > 0 ? produtos.map(prod => {
-      // Prioridade: 1º Foto guardada no Modo Edição -> 2º Foto limpa do alimento por marca
-      const imgProd = prod.imagem_url || obterImagemAlimento(prod.nome_produto + " " + nomeIngrediente);
-      return `
-        <div class="card-item">
-          <div class="img-container-item">
-            <img class="prod-img" src="${imgProd}" alt="${prod.nome_produto}">
-            ${editMode ? `
-              <button class="btn-edit-img" onclick="alterarImagemProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">✏️ Alterar Foto</button>
-              <button class="btn-delete-prod" onclick="eliminarProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">🗑️ Eliminar</button>
-            ` : ''}
-          </div>
-          <div class="card-info" onclick="consultarPrecoAoClicar(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">
-            <h3>${prod.nome_produto}</h3>
-            <div class="subtitle">Marca: ${prod.marca || 'Genérica'}</div>
-            <div class="subtitle">${prod.supermercado || 'Supermercados'}</div>
-          </div>
-          <div class="price-tag" onclick="consultarPrecoAoClicar(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">${prod.preco_atual ? prod.preco_atual + ' €' : '🔍 Ver Preço'}</div>
+      document.getElementById('view-produtos').innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3>Opções de Supermercado</h3>
+          <button class="edit-mode-btn ${editMode ? 'active' : ''}" onclick="toggleEditMode()">
+            ${editMode ? '✓ Concluir Edição' : '⚙️ Modo Edição'}
+          </button>
         </div>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">${nomeIngrediente}</p>
+        ${Array.isArray(produtos) && produtos.length > 0 ? produtos.map(prod => {
+          const imgProd = prod.imagem_url || obterImagemAlimento(prod.nome_produto + " " + nomeIngrediente);
+          return `
+            <div class="card-item">
+              <div class="img-container-item">
+                <img class="prod-img" src="${imgProd}" alt="${prod.nome_produto}">
+                ${editMode ? `
+                  <button class="btn-edit-img" onclick="alterarImagemProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">✏️ Alterar Foto</button>
+                  <button class="btn-delete-prod" onclick="eliminarProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">🗑️ Eliminar</button>
+                ` : ''}
+              </div>
+              <div class="card-info" onclick="consultarPrecoAoClicar(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">
+                <h3>${prod.nome_produto}</h3>
+                <div class="subtitle">Marca: ${prod.marca || 'Genérica'}</div>
+                <div class="subtitle">${prod.supermercado || 'Supermercados'}</div>
+              </div>
+              <div class="price-tag" onclick="consultarPrecoAoClicar(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">${prod.preco_atual ? prod.preco_atual + ' €' : '🔍 Ver Preço'}</div>
+            </div>
+          `;
+        }).join('') : '<p>Nenhuma marca registada para este ingrediente.</p>'}
       `;
-    }).join('') : '<p>Nenhuma marca registada para este ingrediente.</p>'}
-  `;
-  navigateTo('produtos', 'Produtos do Supermercado');
-}
+      navigateTo('produtos', 'Produtos do Supermercado');
+    }
 
     async function alterarImagemProduto(produtoId, nomeProduto) {
       const novaUrl = prompt(`Cola aqui o link da imagem para "${nomeProduto}":`);
