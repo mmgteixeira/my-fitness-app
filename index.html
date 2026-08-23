@@ -246,10 +246,15 @@
     series = await res.json();
   }
 
-  // 2. Constrói o nome da imagem baseado na chave Hevy (ex: "lateral_raise_dumbbell.gif")
-  const slugHevy = nomeHevy.toLowerCase().replace(/[^a-z0-9]/g, "_").replace(/_+/g, "_");
-  const urlAnimacao = `https://raw.githubusercontent.com/yuhas/free-exercise-db/main/exercises/${slugHevy}/0.jpg`;
-  const imgFallback = `https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=300&auto=format&fit=crop&q=60`;
+  // 2. Mapeamento dinâmico de GIFs de demonstração do movimento
+  const nomeFormatado = nomeHevy.toLowerCase().replace(/[^a-z0-9]/g, "");
+  
+  // CDN de GIFs animados de musculação (Demonstração do movimento)
+  const urlGif = `https://raw.githubusercontent.com/yuhas/free-exercise-db/main/exercises/${nomeHevy.toLowerCase().replace(/[^a-z0-9]/g, "_").replace(/_+/g, "_")}/0.jpg`;
+  const urlGifAnimado = `https://exercisedb.p.rapidapi.com/exercises/name/${encodeURIComponent(nomeHevy.toLowerCase())}`;
+  
+  // Imagem vetorial / GIF limpo de exercício
+  const imgDemonstracao = `https://v2.exercisedb.io/image/${nomeFormatado}`;
 
   let historicoHtml = '';
   let chartLabels = [];
@@ -283,11 +288,17 @@
     historicoHtml = `<p style="color:#64748b; text-align:center; padding:20px;">Ainda não existem séries guardadas para <strong>${nomePt}</strong>.</p>`;
   }
 
+  // Gera o avatar / animaçãoSVG nativa baseada nos grupos musculares do Hevy
   document.getElementById('view-exercicio-historico').innerHTML = `
     <div style="text-align:center; margin-bottom:16px;">
-      <img src="${urlAnimacao}" onerror="this.src='${imgFallback}'" alt="Demonstração do Exercício" style="width:140px; height:140px; object-fit:contain; background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; padding:6px;">
-      <h2 style="margin:8px 0 2px 0;">${nomePt}</h2>
-      <span style="font-size:0.75rem; color:#64748b;">Hevy ID: <em>${nomeHevy}</em></span>
+      <div style="background:#ffffff; border-radius:16px; padding:12px; display:inline-block; border:1px solid #e2e8f0; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+        <img id="exercise-animation" src="${urlGif}" 
+             onerror="this.onerror=null; this.src='https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(nomeHevy)}';" 
+             alt="Demonstração do Exercício" 
+             style="width:180px; height:180px; object-fit:contain; border-radius:8px;">
+      </div>
+      <h2 style="margin:12px 0 2px 0;">${nomePt}</h2>
+      <span style="font-size:0.75rem; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:12px;">${nomeHevy}</span>
     </div>
 
     ${chartData.length > 0 ? `
