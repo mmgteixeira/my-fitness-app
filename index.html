@@ -601,12 +601,19 @@
     let currentIngredienteId = null, currentIngredienteNome = "";
     let currentTreinoEditId = null, currentGrupoMuscularFiltro = "", currentDiaTreinoAtivo = "";
 
-    // Armazena ordens locais temporárias para reordenação instantânea
     let customProdutosOrder = JSON.parse(localStorage.getItem('custom_prod_order') || '{}');
 
     let chatHistory = JSON.parse(localStorage.getItem('my_fitness_chat_history')) || [
       { sender: 'ai', text: 'Olá Michael! Como posso ajudar hoje com a tua dieta ou treino?' }
     ];
+
+    function normalizarTexto(texto) {
+      return (texto || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "");
+    }
 
     function obterGifExercicio(nomeExercicio, grupoMuscular) {
       const nome = (nomeExercicio || "").toLowerCase();
@@ -881,6 +888,7 @@
       renderCategorias();
     }
 
+    // ORDENAÇÃO ESTRITA E RIGOROSA DAS CATEGORIAS DA DIETA
     function renderCategorias() {
       if (!Array.isArray(rawRefeicoes)) return;
       const refeicoesFiltradas = rawRefeicoes.filter(r => (r.regime || 'bulk').toLowerCase() === currentRegime);
@@ -890,7 +898,8 @@
         return;
       }
 
-      const ordemRefeicoes = [
+      // 1. Ordem oficial absoluta
+      const ordemRefeicoesOficial = [
         "Pequeno almoço",
         "Meio da manhã",
         "Almoço",
@@ -899,19 +908,23 @@
         "Ceia"
       ];
 
+      // 2. Extrai categorias existentes na BD
       const categoriasNaBD = [...new Set(refeicoesFiltradas.map(r => r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim()))];
 
+      // 3. Associa usando a normalização total de texto (sem acentos nem maiúsculas)
       let categoriasOrdenadas = [];
-      ordemRefeicoes.forEach(ordem => {
-        const encontrada = categoriasNaBD.find(cat => cat.toLowerCase().replace(/á/g, 'a').replace(/ç/g, 'c') === ordem.toLowerCase().replace(/á/g, 'a').replace(/ç/g, 'c'));
+
+      ordemRefeicoesOficial.forEach(nomeOficial => {
+        const encontrada = categoriasNaBD.find(catBD => normalizarTexto(catBD) === normalizarTexto(nomeOficial));
         if (encontrada) {
           categoriasOrdenadas.push(encontrada);
         }
       });
 
-      categoriasNaBD.forEach(cat => {
-        if (!categoriasOrdenadas.includes(cat)) {
-          categoriasOrdenadas.push(cat);
+      // Inclui qualquer outra categoria que não esteja na lista principal
+      categoriasNaBD.forEach(catBD => {
+        if (!categoriasOrdenadas.includes(catBD)) {
+          categoriasOrdenadas.push(catBD);
         }
       });
 
@@ -995,7 +1008,6 @@
       const res = await fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?ingrediente_id=eq.${ingredienteId}&select=*&order=id.asc`, { headers });
       let produtos = await res.json();
 
-      // Aplica ordem personalizada guardada no browser se existir
       if (customProdutosOrder[ingredienteId] && Array.isArray(customProdutosOrder[ingredienteId])) {
         const customIds = customProdutosOrder[ingredienteId];
         produtos.sort((a, b) => {
@@ -1049,9 +1061,6 @@
     }
 
     function moverProduto(ingredienteId, indexAtual, direcao) {
-      const cards = Array.from(document.querySelectorAll('#view-produtos .card-item'));
-      const produtos = rawRefeicoes; // Mapeia
-      
       fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?ingrediente_id=eq.${ingredienteId}&select=*&order=id.asc`, { headers })
         .then(res => res.json())
         .then(lista => {
@@ -1228,7 +1237,6 @@
       const novoIndex = indexAtual + direcao;
 
       if (novoIndex >= 0 && novoIndex < exerciciosDoDia.length) {
-        // Troca posições locais no array global rawTreinos
         const exA = exerciciosDoDia[indexAtual];
         const exB = exerciciosDoDia[novoIndex];
 
