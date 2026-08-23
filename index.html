@@ -6,7 +6,6 @@
   <title>My Fitness Coach AI</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    /* Variaveis de Temas */
     :root {
       --primary: #1d4ed8;
       --primary-dark: #1e40af;
@@ -182,6 +181,38 @@
       gap: 8px;
     }
 
+    .edit-mode-btn {
+      background: var(--border);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .edit-mode-btn.active {
+      background: #eab308;
+      color: #000000;
+      border-color: #ca8a04;
+    }
+
+    .btn-edit-img {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+
     .card-item {
       background: var(--card);
       border: 1px solid var(--border);
@@ -197,13 +228,19 @@
     }
     .card-item:active { transform: scale(0.98); }
 
+    .img-container-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
     .prod-img {
       width: 65px;
       height: 65px;
       object-fit: cover;
       border-radius: 10px;
       background: var(--border);
-      flex-shrink: 0;
     }
     .card-info { flex: 1; }
     .card-info h3 { margin: 0; font-size: 0.95rem; color: var(--text); }
@@ -301,12 +338,18 @@
     const SUPABASE_URL = "https://gbzfgbxnbhrawmkfhwls.supabase.co"; 
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiemZnYnhuYmhyYXdta2Zod2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNDY0NjQsImV4cCI6MjEwMjkyMjQ2NH0.crb4tb7RQVqRJZhShjVAl40kg0Ddua0s4zUj_6dCS3A';
 
-    const headers = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` };
+    const headers = { 
+      "apikey": SUPABASE_KEY, 
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json" 
+    };
 
     let currentRegime = 'bulk';
     let navigationStack = ['categorias'];
     let rawRefeicoes = [], rawTreinos = [], rawHistorico = [];
     let chartInstance = null;
+    let editMode = false;
+    let currentIngredienteId = null, currentIngredienteNome = "";
 
     const EXERCISE_GIFS = {
       "Front Raise (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Front-Raise.gif",
@@ -464,29 +507,70 @@
       navigateTo('detalhe', 'Ingredientes');
     }
 
+    function toggleEditMode() {
+      editMode = !editMode;
+      if (currentIngredienteId) {
+        openProdutos(currentIngredienteId, currentIngredienteNome);
+      }
+    }
+
     async function openProdutos(ingredienteId, nomeIngrediente) {
+      currentIngredienteId = ingredienteId;
+      currentIngredienteNome = nomeIngrediente;
+
       const res = await fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?ingrediente_id=eq.${ingredienteId}&select=*`, { headers });
       const produtos = await res.json();
 
       document.getElementById('view-produtos').innerHTML = `
-        <h3>Opções de Supermercado</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3>Opções de Supermercado</h3>
+          <button class="edit-mode-btn ${editMode ? 'active' : ''}" onclick="toggleEditMode()">
+            ${editMode ? '✓ Concluir Edição' : '⚙️ Modo Edição'}
+          </button>
+        </div>
         <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">${nomeIngrediente}</p>
         ${Array.isArray(produtos) && produtos.length > 0 ? produtos.map(prod => {
           const imgProd = prod.imagem_url || obterImagemAlimento(prod.nome_produto + " " + nomeIngrediente);
           return `
-            <div class="card-item" onclick="consultarPrecoAoClicar(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">
-              <img class="prod-img" src="${imgProd}" alt="${prod.nome_produto}">
-              <div class="card-info">
+            <div class="card-item">
+              <div class="img-container-item">
+                <img class="prod-img" src="${imgProd}" alt="${prod.nome_produto}">
+                ${editMode ? `<button class="btn-edit-img" onclick="alterarImagemProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">✏️ Alterar Foto</button>` : ''}
+              </div>
+              <div class="card-info" onclick="consultarPrecoAoClicar(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">
                 <h3>${prod.nome_produto}</h3>
                 <div class="subtitle">Marca: ${prod.marca || 'Genérica'}</div>
                 <div class="subtitle">${prod.supermercado || 'Supermercados'}</div>
               </div>
-              <div class="price-tag">${prod.preco_atual ? prod.preco_atual + ' €' : '🔍 Ver Preço'}</div>
+              <div class="price-tag" onclick="consultarPrecoAoClicar(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">${prod.preco_atual ? prod.preco_atual + ' €' : '🔍 Ver Preço'}</div>
             </div>
           `;
         }).join('') : '<p>Nenhuma marca registada para este ingrediente.</p>'}
       `;
       navigateTo('produtos', 'Produtos do Supermercado');
+    }
+
+    async function alterarImagemProduto(produtoId, nomeProduto) {
+      const novaUrl = prompt(`Cola aqui o link da imagem para "${nomeProduto}":`);
+      if (novaUrl && novaUrl.trim() !== '') {
+        try {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?id=eq.${produtoId}`, {
+            method: 'PATCH',
+            headers: headers,
+            body: JSON.stringify({ imagem_url: novaUrl.trim() })
+          });
+          
+          if (res.ok) {
+            alert('Imagem atualizada com sucesso!');
+            openProdutos(currentIngredienteId, currentIngredienteNome);
+          } else {
+            alert('Erro ao guardar imagem no Supabase.');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Erro de ligação ao atualizar imagem.');
+        }
+      }
     }
 
     function consultarPrecoAoClicar(produtoId, nomeProduto) {
