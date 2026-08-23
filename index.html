@@ -271,6 +271,16 @@
       border-radius: 10px;
       background: var(--border);
     }
+    .ex-thumb-img {
+      width: 50px;
+      height: 50px;
+      object-fit: contain;
+      border-radius: 8px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
     .card-info { flex: 1; }
     .card-info h3 { margin: 0; font-size: 0.95rem; color: var(--text); }
     .card-info .subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 3px; }
@@ -340,7 +350,7 @@
     }
     .nav-item.active { color: var(--primary); font-weight: bold; }
 
-    /* ESTILOS DO CHAT FLUTUANTE (FAB) E MODAIS */
+    /* CHAT & HEVY MODAIS */
     .chat-fab {
       position: fixed;
       bottom: 90px;
@@ -364,11 +374,11 @@
 
     .chat-modal, .hevy-picker-modal {
       position: fixed;
+      top: 60px;
       bottom: 85px;
       right: 16px;
       left: 16px;
-      max-width: 480px;
-      height: 520px;
+      max-width: 500px;
       margin: 0 auto;
       background: var(--card);
       border: 1px solid var(--border);
@@ -400,12 +410,12 @@
     }
     .chat-search-input {
       width: 100%;
-      padding: 6px 10px;
-      border-radius: 8px;
+      padding: 8px 12px;
+      border-radius: 10px;
       border: 1px solid var(--border);
       background: var(--card);
       color: var(--text);
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       outline: none;
     }
 
@@ -535,15 +545,15 @@
     </div>
   </div>
 
-  <!-- MODAL PESQUISADOR DE EXERCÍCIOS HEVY -->
+  <!-- MODAL PESQUISADOR ESTILO HEVY -->
   <div id="hevy-picker-modal" class="hevy-picker-modal hidden">
     <div class="chat-header">
-      <span id="hevy-picker-title">Substituir Exercício</span>
+      <span id="hevy-picker-title">Adicionar Exercício</span>
       <button onclick="fecharHevyPicker()" style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;">✕</button>
     </div>
     <div class="chat-search-bar">
       <span>🔍</span>
-      <input type="text" id="hevy-search-input" class="chat-search-input" placeholder="Pesquisar exercício do Hevy..." oninput="filtrarHevyPicker(this.value)">
+      <input type="text" id="hevy-search-input" class="chat-search-input" placeholder="Procurar exercício por nome ou músculo..." oninput="filtrarHevyPicker(this.value)">
     </div>
     <div id="hevy-picker-body" class="chat-body"></div>
   </div>
@@ -570,7 +580,7 @@
     let chartInstance = null;
     let editMode = false;
     let currentIngredienteId = null, currentIngredienteNome = "";
-    let currentTreinoEditId = null, currentGrupoMuscularFiltro = "";
+    let currentTreinoEditId = null, currentGrupoMuscularFiltro = "", currentDiaTreinoAtivo = "";
 
     // Histórico de mensagens do chat
     let chatHistory = JSON.parse(localStorage.getItem('my_fitness_chat_history')) || [
@@ -968,11 +978,12 @@
     }
 
     function openExercicios(dia) {
+      currentDiaTreinoAtivo = dia;
       const exercicios = rawTreinos.filter(t => t.dia_semana === dia);
       document.getElementById('view-treinos-exercicios').innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h2>${dia}</h2>
-          <button class="btn-action-small" onclick="adicionarNovoExercicioAoDia('${dia}')">➕ Adicionar Exercício</button>
+          <button class="btn-action-small" onclick="abrirAdicionarExercicioHevy('${dia}')">➕ Adicionar Exercício</button>
         </div>
         <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">Clica no histórico ou edita/substitui qualquer exercício abaixo</p>
         ${exercicios.map(ex => {
@@ -1005,9 +1016,9 @@
                 <tbody id="sets-body-${ex.id}">
                   <tr>
                     <td>1</td>
-                    <td><input type="number" class="set-input" value="${ex.carga_kg || 0}" onchange="atualizarTreinoBD(${ex.id})"></td>
-                    <td><input type="number" class="set-input" value="${parseInt(ex.series_repeticoes) || 10}" onchange="atualizarTreinoBD(${ex.id})"></td>
-                    <td><input type="text" class="set-input" value="90s" onchange="atualizarTreinoBD(${ex.id})"></td>
+                    <td><input type="number" class="set-input" value="${ex.carga_kg || 0}"></td>
+                    <td><input type="number" class="set-input" value="${parseInt(ex.series_repeticoes) || 10}"></td>
+                    <td><input type="text" class="set-input" value="90s"></td>
                   </tr>
                 </tbody>
               </table>
@@ -1026,11 +1037,23 @@
       }
     }
 
+    function abrirAdicionarExercicioHevy(dia) {
+      currentTreinoEditId = null;
+      currentGrupoMuscularFiltro = "";
+      currentDiaTreinoAtivo = dia;
+
+      document.getElementById('hevy-picker-title').innerText = `Adicionar Exercício ao ${dia}`;
+      document.getElementById('hevy-search-input').value = "";
+      document.getElementById('hevy-picker-modal').classList.remove('hidden');
+      filtrarHevyPicker('');
+    }
+
     function abrirSubstituirExercicio(treinoId, grupoMuscular) {
       currentTreinoEditId = treinoId;
       currentGrupoMuscularFiltro = grupoMuscular;
 
-      document.getElementById('hevy-picker-title').innerText = `Substituir por (${grupoMuscular || 'Todos'})`;
+      document.getElementById('hevy-picker-title').innerText = `Substituir Exercício (${grupoMuscular || 'Todos'})`;
+      document.getElementById('hevy-search-input').value = "";
       document.getElementById('hevy-picker-modal').classList.remove('hidden');
       filtrarHevyPicker('');
     }
@@ -1043,12 +1066,15 @@
       const body = document.getElementById('hevy-picker-body');
       let filtrados = rawCatalogoHevy;
 
-      if (currentGrupoMuscularFiltro) {
+      if (currentGrupoMuscularFiltro && !termo.trim()) {
         filtrados = filtrados.filter(ex => ex.grupo_muscular.toLowerCase().includes(currentGrupoMuscularFiltro.toLowerCase()));
       }
 
       if (termo.trim()) {
-        filtrados = filtrados.filter(ex => ex.nome.toLowerCase().includes(termo.toLowerCase()));
+        filtrados = filtrados.filter(ex => 
+          ex.nome.toLowerCase().includes(termo.toLowerCase()) || 
+          ex.grupo_muscular.toLowerCase().includes(termo.toLowerCase())
+        );
       }
 
       if (filtrados.length === 0) {
@@ -1056,53 +1082,48 @@
         return;
       }
 
-      body.innerHTML = filtrados.map(ex => `
-        <div class="card-item" onclick="selecionarSubstitutoHevy('${ex.nome.replace(/'/g, "")}', '${ex.grupo_muscular.replace(/'/g, "")}')">
-          <div class="card-info">
-            <h3>${ex.nome}</h3>
-            <div class="subtitle">Grupo: ${ex.grupo_muscular}</div>
+      body.innerHTML = filtrados.map(ex => {
+        const gifUrl = EXERCISE_GIFS[ex.nome] || "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Press.gif";
+        return `
+          <div class="card-item" style="padding:10px;" onclick="selecionarExercicioHevy('${ex.nome.replace(/'/g, "")}', '${ex.grupo_muscular.replace(/'/g, "")}')">
+            <img class="ex-thumb-img" src="${gifUrl}" alt="${ex.nome}">
+            <div class="card-info">
+              <h3>${ex.nome}</h3>
+              <div class="subtitle">Músculo: <strong>${ex.grupo_muscular}</strong></div>
+            </div>
+            <span class="price-tag">Escolher ❯</span>
           </div>
-          <span class="price-tag">Escolher ❯</span>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
-    async function selecionarSubstitutoHevy(nomeNovo, grupoNovo) {
+    async function selecionarExercicioHevy(nomeNovo, grupoNovo) {
       if (currentTreinoEditId) {
+        // Modo Substituição
         await fetch(`${SUPABASE_URL}/rest/v1/treinos?id=eq.${currentTreinoEditId}`, {
           method: 'PATCH',
           headers: headers,
           body: JSON.stringify({ exercicio: nomeNovo, nome_hevy: nomeNovo, grupo_muscular: grupoNovo })
         });
-        fecharHevyPicker();
-        await loadData();
-        goBack();
-      }
-    }
-
-    async function adicionarNovoExercicioAoDia(dia) {
-      const nomeNovo = prompt("Escreve o nome do exercício a adicionar ao " + dia + ":");
-      if (nomeNovo && nomeNovo.trim()) {
+      } else if (currentDiaTreinoAtivo) {
+        // Modo Adição
         await fetch(`${SUPABASE_URL}/rest/v1/treinos`, {
           method: 'POST',
           headers: headers,
           body: JSON.stringify({
-            dia_semana: dia,
-            exercicio: nomeNovo.trim(),
-            nome_hevy: nomeNovo.trim(),
-            grupo_muscular: 'Geral',
+            dia_semana: currentDiaTreinoAtivo,
+            exercicio: nomeNovo,
+            nome_hevy: nomeNovo,
+            grupo_muscular: grupoNovo,
             series_repeticoes: '3x10',
             carga_kg: 0
           })
         });
-        await loadData();
-        openExercicios(dia);
       }
-    }
 
-    async function atualizarTreinoBD(treinoId) {
-      // Atualização rápida de séries/cargas
-      console.log("Treino " + treinoId + " atualizado.");
+      fecharHevyPicker();
+      await loadData();
+      openExercicios(currentDiaTreinoAtivo);
     }
 
     async function openExercicioHistorico(nomeHevy, nomePt) {
