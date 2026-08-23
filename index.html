@@ -99,7 +99,6 @@
       "Face Pull": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Face-Pull.gif"
     };
 
-    // Mapeamento direto e limpo para imagens reais dos alimentos
     function obterImagemAlimento(nomeTexto) {
       const nome = nomeTexto.toLowerCase();
       
@@ -407,7 +406,7 @@
 
     function goBack() {
       navigationStack.pop();
-      const previousView = navigationStack[previousView.length - 1];
+      const previousView = navigationStack[navigationStack.length - 1];
       document.querySelectorAll('.container > div').forEach(el => el.classList.add('hidden'));
       
       if (previousView === 'categorias') {
