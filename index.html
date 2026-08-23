@@ -237,16 +237,9 @@
     }
 
     async function openExercicioHistorico(nomeHevy, nomePt) {
-      // Faz o pedido diretamente pelo nome oficial do Hevy
+      // Procura rigorosa por nome do Hevy
       const res = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=eq.${encodeURIComponent(nomeHevy)}&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
-      let series = await res.json();
-
-      // Fallback para pesquisa parcial se a igualdade exata não retornar resultados
-      if (!Array.isArray(series) || series.length === 0) {
-        const primeiraPalavra = nomePt.split(' ')[0];
-        const resFallback = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=ilike.*${encodeURIComponent(primeiraPalavra)}*&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
-        series = await resFallback.json();
-      }
+      const series = await res.json();
 
       let historicoHtml = '';
       let chartLabels = [];
@@ -277,7 +270,7 @@
           </div>
         `).join('');
       } else {
-        historicoHtml = `<p style="color:#64748b; text-align:center; padding:20px;">Sem registos no Hevy para este exercício.</p>`;
+        historicoHtml = `<p style="color:#64748b; text-align:center; padding:20px;">Sem registos no Hevy para <strong>${nomePt}</strong> (Chave Hevy: <em>${nomeHevy}</em>).</p>`;
       }
 
       document.getElementById('view-exercicio-historico').innerHTML = `
