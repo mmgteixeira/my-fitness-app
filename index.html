@@ -437,24 +437,54 @@
       }
     }
 
+    function calcularIntervaloCalorias(regime) {
+      const refeicoesFiltradas = rawRefeicoes.filter(r => (r.regime || 'bulk').toLowerCase() === regime);
+      if (refeicoesFiltradas.length === 0) {
+        return regime === 'bulk' ? '2900 - 3100' : '2100 - 2300';
+      }
+
+      // Agrupa os pratos/opções pelo tipo de refeição
+      let porCategoria = {};
+      refeicoesFiltradas.forEach(r => {
+        const cat = r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim().toLowerCase();
+        if (!porCategoria[cat]) porCategoria[cat] = [];
+        porCategoria[cat].push(parseFloat(r.calorias_totais) || 0);
+      });
+
+      let minTotal = 0;
+      let maxTotal = 0;
+
+      // Para cada refeição do dia, pega na opção mínima e máxima disponível
+      Object.values(porCategoria).forEach(caloriasList => {
+        if (caloriasList.length > 0) {
+          minTotal += Math.min(...caloriasList);
+          maxTotal += Math.max(...caloriasList);
+        }
+      });
+
+      if (minTotal === 0 && maxTotal === 0) {
+        return regime === 'bulk' ? '2900 - 3100' : '2100 - 2300';
+      }
+
+      // Arredonda a centenas para um formato limpo (ex: 2900 - 3100)
+      const minArredondado = Math.round(minTotal / 50) * 50;
+      const maxArredondado = Math.round(maxTotal / 50) * 50;
+
+      if (minArredondado === maxArredondado) {
+        return `~${minArredondado}`;
+      }
+
+      return `${minArredondado} - ${maxArredondado}`;
+    }
+
     function setRegime(regime) {
       currentRegime = regime;
 
-      // Cálculo do intervalo médio de calorias do regime
-      const refeicoesFiltradas = rawRefeicoes.filter(r => (r.regime || 'bulk').toLowerCase() === currentRegime);
-      let rangeStr = regime === 'bulk' ? '2900 - 3100' : '2100 - 2300';
+      const rangeBulk = calcularIntervaloCalorias('bulk');
+      const rangeCutting = calcularIntervaloCalorias('cutting');
 
-      if (refeicoesFiltradas.length > 0) {
-        const total = refeicoesFiltradas.reduce((acc, r) => acc + (parseFloat(r.calorias_totais) || 0), 0);
-        if (total > 0) {
-          const minCal = Math.round(total * 0.95);
-          const maxCal = Math.round(total * 1.05);
-          rangeStr = `${minCal} - ${maxCal}`;
-        }
-      }
-
-      document.getElementById('btn-bulk').innerText = `💪 BULK (${regime === 'bulk' ? rangeStr : '2900 - 3100'} kcal)`;
-      document.getElementById('btn-cutting').innerText = `🔥 CUTTING (${regime === 'cutting' ? rangeStr : '2100 - 2300'} kcal)`;
+      document.getElementById('btn-bulk').innerText = `💪 BULK (${rangeBulk} kcal)`;
+      document.getElementById('btn-cutting').innerText = `🔥 CUTTING (${rangeCutting} kcal)`;
 
       document.getElementById('btn-bulk').classList.toggle('active', regime === 'bulk');
       document.getElementById('btn-cutting').classList.toggle('active', regime === 'cutting');
@@ -478,7 +508,6 @@
         return;
       }
 
-      // 1. Ordem estrita das refeições principais
       const ordemRefeicoes = [
         "Pequeno almoço",
         "Meio da manhã",
@@ -488,7 +517,6 @@
         "Ceia"
       ];
 
-      // 2. Garante a recolha preservando a ordem original dos registos
       const categoriasNaBD = [...new Set(refeicoesFiltradas.map(r => r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim()))];
 
       let categoriasOrdenadas = [];
