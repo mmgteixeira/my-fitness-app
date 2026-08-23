@@ -213,6 +213,18 @@
       margin-top: 4px;
     }
 
+    .btn-delete-prod {
+      background: #ef4444;
+      color: #ffffff;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
     .card-item {
       background: var(--card);
       border: 1px solid var(--border);
@@ -535,7 +547,10 @@
             <div class="card-item">
               <div class="img-container-item">
                 <img class="prod-img" src="${imgProd}" alt="${prod.nome_produto}">
-                ${editMode ? `<button class="btn-edit-img" onclick="alterarImagemProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">✏️ Alterar Foto</button>` : ''}
+                ${editMode ? `
+                  <button class="btn-edit-img" onclick="alterarImagemProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">✏️ Alterar Foto</button>
+                  <button class="btn-delete-prod" onclick="eliminarProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">🗑️ Eliminar</button>
+                ` : ''}
               </div>
               <div class="card-info" onclick="consultarPrecoAoClicar(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">
                 <h3>${prod.nome_produto}</h3>
@@ -569,6 +584,28 @@
         } catch (err) {
           console.error(err);
           alert('Erro de ligação ao atualizar imagem.');
+        }
+      }
+    }
+
+    async function eliminarProduto(produtoId, nomeProduto) {
+      const confirmar = confirm(`Tem a certeza que deseja eliminar o produto "${nomeProduto}"?\nEsta ação é permanente.`);
+      if (confirmar) {
+        try {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?id=eq.${produtoId}`, {
+            method: 'DELETE',
+            headers: headers
+          });
+
+          if (res.ok) {
+            alert(`Produto "${nomeProduto}" eliminado com sucesso!`);
+            openProdutos(currentIngredienteId, currentIngredienteNome);
+          } else {
+            alert('Erro ao eliminar produto no Supabase.');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Erro de ligação ao eliminar produto.');
         }
       }
     }
