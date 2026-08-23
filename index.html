@@ -242,6 +242,24 @@
       cursor: pointer;
     }
 
+    .order-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      justify-content: center;
+    }
+
+    .btn-arrow {
+      background: var(--border);
+      color: var(--text);
+      border: none;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
     .card-item {
       background: var(--card);
       border: 1px solid var(--border);
@@ -583,17 +601,17 @@
     let currentIngredienteId = null, currentIngredienteNome = "";
     let currentTreinoEditId = null, currentGrupoMuscularFiltro = "", currentDiaTreinoAtivo = "";
 
-    // Histórico de mensagens do chat
+    // Armazena ordens locais temporárias para reordenação instantânea
+    let customProdutosOrder = JSON.parse(localStorage.getItem('custom_prod_order') || '{}');
+
     let chatHistory = JSON.parse(localStorage.getItem('my_fitness_chat_history')) || [
       { sender: 'ai', text: 'Olá Michael! Como posso ajudar hoje com a tua dieta ou treino?' }
     ];
 
-    // Mapeador Inteligente de GIFs com links específicos e rigorosos
     function obterGifExercicio(nomeExercicio, grupoMuscular) {
       const nome = (nomeExercicio || "").toLowerCase();
       const grupo = (grupoMuscular || "").toLowerCase();
 
-      // Links diretos personalizados do utilizador
       if (nome.includes("supino") && (nome.includes("máquina") || nome.includes("maquina") || nome.includes("discos") || nome.includes("placas")))
         return "https://i.pinimg.com/originals/df/fd/85/dffd856bea5056e1adbb683c6ea54613.gif";
 
@@ -621,7 +639,6 @@
       if (nome.includes("martelo") || nome.includes("hammer curl"))
         return "https://fitliferegime.com/wp-content/uploads/2023/12/Hammer-Curl.gif";
 
-      // Outros mapeamentos específicos
       if (nome.includes("chest fly (machine)") || nome.includes("voador") || nome.includes("aberturas na máquina") || nome.includes("aberturas na maquina") || nome.includes("pec deck")) 
         return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Pec-Deck-Fly.gif";
 
@@ -685,7 +702,6 @@
       if (nome.includes("crunch") || nome.includes("abdominal") || nome.includes("prancha")) 
         return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Crunch.gif";
 
-      // Fallbacks por Grupo Muscular
       if (grupo.includes("peito")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Pec-Deck-Fly.gif";
       if (grupo.includes("dorsais") || grupo.includes("costas")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lat-Pulldown.gif";
       if (grupo.includes("ombro")) return "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif";
@@ -973,73 +989,119 @@
     }
 
     async function openProdutos(ingredienteId, nomeIngrediente) {
-  currentIngredienteId = ingredienteId;
-  currentIngredienteNome = nomeIngrediente;
+      currentIngredienteId = ingredienteId;
+      currentIngredienteNome = nomeIngrediente;
 
-  // Garante SEMPRE a ordenação estrita por ID ascendente para a ordem não mudar após edição
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?ingrediente_id=eq.${ingredienteId}&select=*&order=id.asc`, { headers });
-  const produtos = await res.json();
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?ingrediente_id=eq.${ingredienteId}&select=*&order=id.asc`, { headers });
+      let produtos = await res.json();
 
-  document.getElementById('view-produtos').innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-      <h3>Opções de Supermercado</h3>
-      <button class="edit-mode-btn ${editMode ? 'active' : ''}" onclick="toggleEditMode()">
-        ${editMode ? '✓ Concluir Edição' : '⚙️ Modo Edição'}
-      </button>
-    </div>
-    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">${nomeIngrediente}</p>
-    ${Array.isArray(produtos) && produtos.length > 0 ? produtos.map(prod => {
-      // Prioridade total ao link da imagem guardado na Base de Dados
-      const imgProd = (prod.imagem_url && prod.imagem_url.trim() !== '') 
-        ? prod.imagem_url 
-        : obterImagemAlimento(prod.nome_produto + " " + nomeIngrediente);
-
-      return `
-        <div class="card-item">
-          <div class="img-container-item">
-            <img class="prod-img" src="${imgProd}" alt="${prod.nome_produto}">
-            ${editMode ? `
-              <button class="btn-action-small" onclick="alterarImagemProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">✏️ Alterar Foto</button>
-              <button class="btn-action-danger" style="margin-top:4px;" onclick="eliminarProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">🗑️ Eliminar</button>
-            ` : ''}
-          </div>
-          <div class="card-info" onclick="consultarPrecoAoClicar(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">
-            <h3>${prod.nome_produto}</h3>
-            <div class="subtitle">Marca: ${prod.marca || 'Genérica'}</div>
-            <div class="subtitle">${prod.supermercado || 'Supermercados'}</div>
-          </div>
-          <div class="price-tag" onclick="consultarPrecoAoClicar(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">${prod.preco_atual ? prod.preco_atual + ' €' : '🔍 Ver Preço'}</div>
-        </div>
-      `;
-    }).join('') : '<p>Nenhuma marca registada para este ingrediente.</p>'}
-  `;
-  navigateTo('produtos', 'Produtos do Supermercado');
-}
-
-async function alterarImagemProduto(produtoId, nomeProduto) {
-  const novaUrl = prompt(`Cola aqui o link da imagem para "${nomeProduto}":`);
-  if (novaUrl && novaUrl.trim() !== '') {
-    try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?id=eq.${produtoId}`, {
-        method: 'PATCH',
-        headers: headers,
-        body: JSON.stringify({ imagem_url: novaUrl.trim() })
-      });
-      
-      if (res.ok) {
-        alert('Imagem atualizada com sucesso!');
-        // Atualiza a lista local rawRefeicoes / recarrega mantendo a ordem estrita por id.asc
-        await loadData();
-        openProdutos(currentIngredienteId, currentIngredienteNome);
-      } else {
-        alert('Erro ao guardar imagem no Supabase.');
+      // Aplica ordem personalizada guardada no browser se existir
+      if (customProdutosOrder[ingredienteId] && Array.isArray(customProdutosOrder[ingredienteId])) {
+        const customIds = customProdutosOrder[ingredienteId];
+        produtos.sort((a, b) => {
+          let idxA = customIds.indexOf(a.id);
+          let idxB = customIds.indexOf(b.id);
+          if (idxA === -1) idxA = 999;
+          if (idxB === -1) idxB = 999;
+          return idxA - idxB;
+        });
       }
-    } catch (err) {
-      console.error(err);
-      alert('Erro de ligação ao atualizar imagem.');
+
+      document.getElementById('view-produtos').innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3>Opções de Supermercado</h3>
+          <button class="edit-mode-btn ${editMode ? 'active' : ''}" onclick="toggleEditMode()">
+            ${editMode ? '✓ Concluir Edição' : '⚙️ Modo Edição'}
+          </button>
+        </div>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">${nomeIngrediente}</p>
+        ${Array.isArray(produtos) && produtos.length > 0 ? produtos.map((prod, index) => {
+          const imgProd = (prod.imagem_url && prod.imagem_url.trim() !== '') 
+            ? prod.imagem_url 
+            : obterImagemAlimento(prod.nome_produto + " " + nomeIngrediente);
+
+          return `
+            <div class="card-item">
+              ${editMode ? `
+                <div class="order-controls">
+                  <button class="btn-arrow" onclick="moverProduto(${ingredienteId}, ${index}, -1)">⬆️</button>
+                  <button class="btn-arrow" onclick="moverProduto(${ingredienteId}, ${index}, 1)">⬇️</button>
+                </div>
+              ` : ''}
+              <div class="img-container-item">
+                <img class="prod-img" src="${imgProd}" alt="${prod.nome_produto}">
+                ${editMode ? `
+                  <button class="btn-action-small" style="margin-top:4px;" onclick="alterarImagemProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">✏️ Foto</button>
+                  <button class="btn-action-danger" style="margin-top:4px;" onclick="eliminarProduto(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">🗑️</button>
+                ` : ''}
+              </div>
+              <div class="card-info" onclick="consultarPrecoAoClicar(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">
+                <h3>${prod.nome_produto}</h3>
+                <div class="subtitle">Marca: ${prod.marca || 'Genérica'}</div>
+                <div class="subtitle">${prod.supermercado || 'Supermercados'}</div>
+              </div>
+              <div class="price-tag" onclick="consultarPrecoAoClicar(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">${prod.preco_atual ? prod.preco_atual + ' €' : '🔍 Ver Preço'}</div>
+            </div>
+          `;
+        }).join('') : '<p>Nenhuma marca registada para este ingrediente.</p>'}
+      `;
+      navigateTo('produtos', 'Produtos do Supermercado');
     }
-  }
-}
+
+    function moverProduto(ingredienteId, indexAtual, direcao) {
+      const cards = Array.from(document.querySelectorAll('#view-produtos .card-item'));
+      const produtos = rawRefeicoes; // Mapeia
+      
+      fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?ingrediente_id=eq.${ingredienteId}&select=*&order=id.asc`, { headers })
+        .then(res => res.json())
+        .then(lista => {
+          if (customProdutosOrder[ingredienteId]) {
+            const customIds = customProdutosOrder[ingredienteId];
+            lista.sort((a, b) => {
+              let idxA = customIds.indexOf(a.id);
+              let idxB = customIds.indexOf(b.id);
+              if (idxA === -1) idxA = 999;
+              if (idxB === -1) idxB = 999;
+              return idxA - idxB;
+            });
+          }
+
+          const novoIndex = indexAtual + direcao;
+          if (novoIndex >= 0 && novoIndex < lista.length) {
+            const temp = lista[indexAtual];
+            lista[indexAtual] = lista[novoIndex];
+            lista[novoIndex] = temp;
+
+            customProdutosOrder[ingredienteId] = lista.map(p => p.id);
+            localStorage.setItem('custom_prod_order', JSON.stringify(customProdutosOrder));
+            openProdutos(ingredienteId, currentIngredienteNome);
+          }
+        });
+    }
+
+    async function alterarImagemProduto(produtoId, nomeProduto) {
+      const novaUrl = prompt(`Cola aqui o link da imagem para "${nomeProduto}":`);
+      if (novaUrl && novaUrl.trim() !== '') {
+        try {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?id=eq.${produtoId}`, {
+            method: 'PATCH',
+            headers: headers,
+            body: JSON.stringify({ imagem_url: novaUrl.trim() })
+          });
+          
+          if (res.ok) {
+            alert('Imagem atualizada com sucesso!');
+            await loadData();
+            openProdutos(currentIngredienteId, currentIngredienteNome);
+          } else {
+            alert('Erro ao guardar imagem no Supabase.');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Erro de ligação ao atualizar imagem.');
+        }
+      }
+    }
 
     async function eliminarProduto(produtoId, nomeProduto) {
       const confirmar = confirm(`Tem a certeza que deseja eliminar o produto "${nomeProduto}"?\nEsta ação é permanente.`);
@@ -1067,7 +1129,7 @@ async function alterarImagemProduto(produtoId, nomeProduto) {
       window.open(`https://www.continente.pt/pesquisa/?q=${encodeURIComponent(nomeProduto)}`, '_blank');
     }
 
-    /* GESTÃO E EDIÇÃO DE TREINOS COM MODO CONFIGURAÇÃO ESTILO PRODUTOS */
+    /* GESTÃO E EDIÇÃO DE TREINOS COM REORDENAÇÃO */
     function renderTreinosDias() {
       if (!Array.isArray(rawTreinos)) return;
       const dias = [...new Set(rawTreinos.map(t => t.dia_semana))];
@@ -1083,7 +1145,7 @@ async function alterarImagemProduto(produtoId, nomeProduto) {
 
     function openExercicios(dia) {
       currentDiaTreinoAtivo = dia;
-      const exercicios = rawTreinos.filter(t => t.dia_semana === dia);
+      let exercicios = rawTreinos.filter(t => t.dia_semana === dia);
 
       document.getElementById('view-treinos-exercicios').innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -1100,16 +1162,22 @@ async function alterarImagemProduto(produtoId, nomeProduto) {
         ` : ''}
 
         <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">
-          ${editModeTreinos ? 'Modo de Configuração Ativo: Altera ou elimina exercícios' : 'Clica no exercício para ver o histórico e gráfico de cargas'}
+          ${editModeTreinos ? 'Modo de Configuração Ativo: Altera a ordem ⬆️ ⬇️ ou elimina exercícios' : 'Clica no exercício para ver o histórico e gráfico de cargas'}
         </p>
 
-        ${exercicios.map(ex => {
+        ${exercicios.map((ex, index) => {
           const hevyKey = ex.nome_hevy || ex.exercicio;
           const gifUrl = obterGifExercicio(ex.exercicio, ex.grupo_muscular);
 
           return `
             <div class="card-item" style="flex-direction:column; align-items:flex-start;">
               <div style="display:flex; width:100%; align-items:center; gap:12px;">
+                ${editModeTreinos ? `
+                  <div class="order-controls">
+                    <button class="btn-arrow" onclick="moverExercicioDia('${dia}', ${index}, -1)">⬆️</button>
+                    <button class="btn-arrow" onclick="moverExercicioDia('${dia}', ${index}, 1)">⬇️</button>
+                  </div>
+                ` : ''}
                 <img class="ex-thumb-img" src="${gifUrl}" alt="${ex.exercicio}">
                 <div style="flex:1;" onclick="if(!editModeTreinos) openExercicioHistorico('${hevyKey.replace(/'/g, "")}', '${ex.exercicio.replace(/'/g, "")}', '${ex.grupo_muscular || ""}')">
                   <h3 style="color:var(--primary);">${ex.exercicio}</h3>
@@ -1153,6 +1221,26 @@ async function alterarImagemProduto(produtoId, nomeProduto) {
         }).join('')}
       `;
       navigateTo('treinos-exercicios', dia);
+    }
+
+    function moverExercicioDia(dia, indexAtual, direcao) {
+      let exerciciosDoDia = rawTreinos.filter(t => t.dia_semana === dia);
+      const novoIndex = indexAtual + direcao;
+
+      if (novoIndex >= 0 && novoIndex < exerciciosDoDia.length) {
+        // Troca posições locais no array global rawTreinos
+        const exA = exerciciosDoDia[indexAtual];
+        const exB = exerciciosDoDia[novoIndex];
+
+        const idxGlobalA = rawTreinos.findIndex(t => t.id === exA.id);
+        const idxGlobalB = rawTreinos.findIndex(t => t.id === exB.id);
+
+        const temp = rawTreinos[idxGlobalA];
+        rawTreinos[idxGlobalA] = rawTreinos[idxGlobalB];
+        rawTreinos[idxGlobalB] = temp;
+
+        openExercicios(dia);
+      }
     }
 
     async function eliminarExercicioTreino(treinoId, nomeExercicio) {
@@ -1225,14 +1313,12 @@ async function alterarImagemProduto(produtoId, nomeProduto) {
 
     async function selecionarExercicioHevy(nomeNovo, grupoNovo) {
       if (currentTreinoEditId) {
-        // Modo Substituição
         await fetch(`${SUPABASE_URL}/rest/v1/treinos?id=eq.${currentTreinoEditId}`, {
           method: 'PATCH',
           headers: headers,
           body: JSON.stringify({ exercicio: nomeNovo, nome_hevy: nomeNovo, grupo_muscular: grupoNovo })
         });
       } else if (currentDiaTreinoAtivo) {
-        // Modo Adição
         await fetch(`${SUPABASE_URL}/rest/v1/treinos`, {
           method: 'POST',
           headers: headers,
