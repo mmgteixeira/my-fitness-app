@@ -79,7 +79,6 @@
     let rawRefeicoes = [], rawTreinos = [], rawHistorico = [];
     let chartInstance = null;
 
-    // Dicionário de GIFs estáticos de exercícios do Hevy
     const EXERCISE_GIFS = {
       "Front Raise (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Front-Raise.gif",
       "Lateral Raise (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif",
@@ -99,6 +98,28 @@
       "Calf Press (Machine)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Calf-Press-on-Leg-Press.gif",
       "Face Pull": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Face-Pull.gif"
     };
+
+    // Mapeamento direto e limpo para imagens reais dos alimentos
+    function obterImagemAlimento(nomeTexto) {
+      const nome = nomeTexto.toLowerCase();
+      
+      if (nome.includes("leite") || nome.includes("uht")) return "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=200&auto=format&fit=crop&q=60";
+      if (nome.includes("pão") || nome.includes("tosta") || nome.includes("forma")) return "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200&auto=format&fit=crop&q=60";
+      if (nome.includes("manteiga") || nome.includes("amendoim")) return "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=200&auto=format&fit=crop&q=60";
+      if (nome.includes("ovo") || nome.includes("ovos")) return "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=200&auto=format&fit=crop&q=60";
+      if (nome.includes("abacate")) return "https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=200&auto=format&fit=crop&q=60";
+      if (nome.includes("iogurte") || nome.includes("skyr") || nome.includes("pudim")) return "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=200&auto=format&fit=crop&q=60";
+      if (nome.includes("fiambre") || nome.includes("peru") || nome.includes("frango")) return "https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=200&auto=format&fit=crop&q=60";
+      if (nome.includes("cereal") || nome.includes("aveia") || nome.includes("nestum")) return "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=200&auto=format&fit=crop&q=60";
+      if (nome.includes("atum")) return "https://images.unsplash.com/photo-1599488615731-7e5c2823ff28?w=200&auto=format&fit=crop&q=60";
+      if (nome.includes("banana")) return "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=200&auto=format&fit=crop&q=60";
+      if (nome.includes("maçã") || nome.includes("maca")) return "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=200&auto=format&fit=crop&q=60";
+      if (nome.includes("arroz")) return "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=200&auto=format&fit=crop&q=60";
+      if (nome.includes("massa")) return "https://images.unsplash.com/photo-1621996346565-e3d5d6281288?w=200&auto=format&fit=crop&q=60";
+      if (nome.includes("queijo")) return "https://images.unsplash.com/photo-1452195100486-9cc805987862?w=200&auto=format&fit=crop&q=60";
+
+      return "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=200&auto=format&fit=crop&q=60";
+    }
 
     async function loadData() {
       try {
@@ -168,28 +189,6 @@
       navigateTo('pratos', categoria);
     }
 
-    // Mapeamento simples de alimentos para imagens reais e limpas
-    function obterImagemAlimento(nomeIngrediente) {
-      const nome = nomeIngrediente.toLowerCase();
-      
-      let termo = "food";
-      if (nome.includes("pão") || nome.includes("tosta")) termo = "bread";
-      else if (nome.includes("manteiga") || nome.includes("amendoim")) termo = "peanut-butter";
-      else if (nome.includes("ovo") || nome.includes("ovos")) termo = "eggs";
-      else if (nome.includes("abacate")) termo = "avocado";
-      else if (nome.includes("leite") || nome.includes("iogurte") || nome.includes("skyr") || nome.includes("pudim")) termo = "yogurt";
-      else if (nome.includes("fiambre") || nome.includes("peru") || nome.includes("frango")) termo = "sliced-chicken";
-      else if (nome.includes("cereal") || nome.includes("aveia") || nome.includes("nestum")) termo = "oatmeal";
-      else if (nome.includes("atum")) termo = "canned-tuna";
-      else if (nome.includes("banana")) termo = "banana";
-      else if (nome.includes("maçã") || nome.includes("maca")) termo = "apple";
-      else if (nome.includes("arroz")) termo = "rice";
-      else if (nome.includes("massa")) termo = "pasta";
-      else if (nome.includes("queijo")) termo = "cheese";
-
-      return `https://source.unsplash.com/300x300/?${termo}`;
-    }
-
     async function openDetalhe(pratoId) {
       const prato = rawRefeicoes.find(r => r.id === pratoId);
       const res = await fetch(`${SUPABASE_URL}/rest/v1/ingredientes?refeicao_id=eq.${pratoId}&select=*`, { headers });
@@ -201,7 +200,7 @@
           const imgAlimento = i.imagem_url || obterImagemAlimento(i.nome);
           return `
             <div class="card-item" onclick="openProdutos(${i.id}, '${i.nome.replace(/'/g, "")}')">
-              <img class="prod-img" src="${imgAlimento}" onerror="this.src='https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=150&auto=format&fit=crop&q=60'" alt="${i.nome}">
+              <img class="prod-img" src="${imgAlimento}" alt="${i.nome}">
               <div class="card-info">
                 <h3>${i.nome}</h3>
                 <div class="subtitle">${i.quantidade_descricao}</div>
@@ -229,17 +228,20 @@
       document.getElementById('view-produtos').innerHTML = `
         <h3>Opções de Supermercado</h3>
         <p style="color:#64748b; font-size:0.85rem; margin-bottom:16px;">${nomeIngrediente}</p>
-        ${Array.isArray(produtos) && produtos.length > 0 ? produtos.map(prod => `
-          <div class="card-item" onclick="consultarPrecoAoClicar(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">
-            <img class="prod-img" src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&auto=format&fit=crop&q=60" alt="Produto">
-            <div class="card-info">
-              <h3>${prod.nome_produto}</h3>
-              <div class="subtitle">Marca: ${prod.marca || 'Genérica'}</div>
-              <div class="subtitle">${prod.supermercado || 'Supermercados'}</div>
+        ${Array.isArray(produtos) && produtos.length > 0 ? produtos.map(prod => {
+          const imgProd = prod.imagem_url || obterImagemAlimento(prod.nome_produto + " " + nomeIngrediente);
+          return `
+            <div class="card-item" onclick="consultarPrecoAoClicar(${prod.id}, '${prod.nome_produto.replace(/'/g, "")}')">
+              <img class="prod-img" src="${imgProd}" alt="${prod.nome_produto}">
+              <div class="card-info">
+                <h3>${prod.nome_produto}</h3>
+                <div class="subtitle">Marca: ${prod.marca || 'Genérica'}</div>
+                <div class="subtitle">${prod.supermercado || 'Supermercados'}</div>
+              </div>
+              <div class="price-tag">${prod.preco_atual ? prod.preco_atual + ' €' : '🔍 Ver Preço'}</div>
             </div>
-            <div class="price-tag">${prod.preco_atual ? prod.preco_atual + ' €' : '🔍 Ver Preço'}</div>
-          </div>
-        `).join('') : '<p>Nenhuma marca registada para este ingrediente.</p>'}
+          `;
+        }).join('') : '<p>Nenhuma marca registada para este ingrediente.</p>'}
       `;
       navigateTo('produtos', 'Produtos do Supermercado');
     }
@@ -405,7 +407,7 @@
 
     function goBack() {
       navigationStack.pop();
-      const previousView = navigationStack[navigationStack.length - 1];
+      const previousView = navigationStack[previousView.length - 1];
       document.querySelectorAll('.container > div').forEach(el => el.classList.add('hidden'));
       
       if (previousView === 'categorias') {
