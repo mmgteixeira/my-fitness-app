@@ -20,6 +20,10 @@
       --header-bg: #1d4ed8;
       --header-text: #ffffff;
       --nav-bg: #ffffff;
+      --chat-msg-user: #1d4ed8;
+      --chat-msg-user-text: #ffffff;
+      --chat-msg-ai: #f1f5f9;
+      --chat-msg-ai-text: #0f172a;
     }
 
     [data-theme="dark"] {
@@ -36,6 +40,10 @@
       --header-bg: #1e293b;
       --header-text: #f8fafc;
       --nav-bg: #1e293b;
+      --chat-msg-user: #2563eb;
+      --chat-msg-user-text: #ffffff;
+      --chat-msg-ai: #334155;
+      --chat-msg-ai-text: #f8fafc;
     }
 
     [data-theme="cyberpunk"] {
@@ -52,6 +60,10 @@
       --header-bg: #2e1065;
       --header-text: #f5d0fe;
       --nav-bg: #2e1065;
+      --chat-msg-user: #c026d3;
+      --chat-msg-user-text: #ffffff;
+      --chat-msg-ai: #3b0764;
+      --chat-msg-ai-text: #f5d0fe;
     }
 
     [data-theme="emerald"] {
@@ -68,6 +80,10 @@
       --header-bg: #059669;
       --header-text: #ffffff;
       --nav-bg: #ffffff;
+      --chat-msg-user: #059669;
+      --chat-msg-user-text: #ffffff;
+      --chat-msg-ai: #e6f4ea;
+      --chat-msg-ai-text: #064e3b;
     }
 
     [data-theme="orange"] {
@@ -84,6 +100,10 @@
       --header-bg: #ea580c;
       --header-text: #ffffff;
       --nav-bg: #ffffff;
+      --chat-msg-user: #ea580c;
+      --chat-msg-user-text: #ffffff;
+      --chat-msg-ai: #ffedd5;
+      --chat-msg-ai-text: #431407;
     }
 
     body {
@@ -287,6 +307,7 @@
       padding: 12px 0;
       border-top: 1px solid var(--border);
       transition: background 0.3s ease;
+      z-index: 10;
     }
     .nav-item {
       background: none;
@@ -297,7 +318,139 @@
       cursor: pointer;
     }
     .nav-item.active { color: var(--primary); font-weight: bold; }
-    .hidden { display: none; }
+
+    /* ESTILOS DO CHAT FLUTUANTE (FAB) */
+    .chat-fab {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99;
+      transition: transform 0.2s ease, background 0.3s ease;
+    }
+    .chat-fab:active { transform: scale(0.92); }
+
+    .chat-modal {
+      position: fixed;
+      bottom: 85px;
+      right: 16px;
+      left: 16px;
+      max-width: 450px;
+      height: 500px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      overflow: hidden;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .chat-header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: bold;
+    }
+
+    .chat-search-bar {
+      padding: 8px 12px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chat-search-input {
+      width: 100%;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .chat-body {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .chat-msg {
+      max-width: 80%;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      line-height: 1.35;
+      word-wrap: break-word;
+    }
+    .chat-msg.user {
+      align-self: flex-end;
+      background: var(--chat-msg-user);
+      color: var(--chat-msg-user-text);
+      border-bottom-right-radius: 2px;
+    }
+    .chat-msg.ai {
+      align-self: flex-start;
+      background: var(--chat-msg-ai);
+      color: var(--chat-msg-ai-text);
+      border-bottom-left-radius: 2px;
+    }
+
+    .chat-footer {
+      padding: 10px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      background: var(--card);
+    }
+    .chat-input {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      font-size: 0.9rem;
+    }
+    .chat-send-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -318,8 +471,8 @@
 
   <div class="container">
     <div id="regime-bar" class="regime-switch-container">
-      <button id="btn-bulk" class="regime-btn active" onclick="setRegime('bulk')">💪 BULK (2900 - 3100 kcal)</button>
-      <button id="btn-cutting" class="regime-btn" onclick="setRegime('cutting')">🔥 CUTTING (2100 - 2300 kcal)</button>
+      <button id="btn-bulk" class="regime-btn active" onclick="setRegime('bulk')">💪 BULK</button>
+      <button id="btn-cutting" class="regime-btn" onclick="setRegime('cutting')">🔥 CUTTING</button>
     </div>
 
     <!-- Vistas Dieta -->
@@ -338,6 +491,28 @@
 
     <!-- Vista Histórico Geral -->
     <div id="view-historico" class="hidden"></div>
+  </div>
+
+  <!-- BOTÃO E MODAL DO CHAT -->
+  <button class="chat-fab" onclick="toggleChatModal()">💬</button>
+
+  <div id="chat-modal" class="chat-modal hidden">
+    <div class="chat-header">
+      <span>💬 Fitness Coach AI</span>
+      <button onclick="toggleChatModal()" style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;">✕</button>
+    </div>
+    
+    <div class="chat-search-bar">
+      <span>🔍</span>
+      <input type="text" id="chat-search-input" class="chat-search-input" placeholder="Pesquisar no histórico..." oninput="filtrarHistoricoChat(this.value)">
+    </div>
+
+    <div id="chat-body" class="chat-body"></div>
+
+    <div class="chat-footer">
+      <input type="text" id="chat-input" class="chat-input" placeholder="Escreve uma mensagem..." onkeydown="if(event.key==='Enter') enviarMensagemChat()">
+      <button class="chat-send-btn" onclick="enviarMensagemChat()">➔</button>
+    </div>
   </div>
 
   <nav class="nav-bar">
@@ -362,6 +537,11 @@
     let chartInstance = null;
     let editMode = false;
     let currentIngredienteId = null, currentIngredienteNome = "";
+
+    // Histórico de mensagens do chat
+    let chatHistory = JSON.parse(localStorage.getItem('my_fitness_chat_history')) || [
+      { sender: 'ai', text: 'Olá Michael! Como posso ajudar hoje com a tua dieta ou treino?' }
+    ];
 
     const EXERCISE_GIFS = {
       "Front Raise (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Front-Raise.gif",
@@ -396,6 +576,60 @@
       const savedTheme = localStorage.getItem('my_fitness_app_theme') || 'default';
       document.getElementById('theme-selector').value = savedTheme;
       changeTheme(savedTheme);
+    }
+
+    function toggleChatModal() {
+      const modal = document.getElementById('chat-modal');
+      modal.classList.toggle('hidden');
+      if (!modal.classList.contains('hidden')) {
+        renderChatMessages();
+      }
+    }
+
+    function renderChatMessages(filterText = '') {
+      const body = document.getElementById('chat-body');
+      const filtered = filterText 
+        ? chatHistory.filter(m => m.text.toLowerCase().includes(filterText.toLowerCase()))
+        : chatHistory;
+
+      if (filtered.length === 0) {
+        body.innerHTML = `<p style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin-top:20px;">Nenhuma mensagem encontrada.</p>`;
+        return;
+      }
+
+      body.innerHTML = filtered.map(m => `
+        <div class="chat-msg ${m.sender}">
+          ${m.text}
+        </div>
+      `).join('');
+
+      body.scrollTop = body.scrollHeight;
+    }
+
+    function filtrarHistoricoChat(termo) {
+      renderChatMessages(termo.trim());
+    }
+
+    function enviarMensagemChat() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      chatHistory.push({ sender: 'user', text });
+      input.value = '';
+      renderChatMessages();
+
+      // Resposta simulada do assistente
+      setTimeout(() => {
+        chatHistory.push({ 
+          sender: 'ai', 
+          text: `Entendido! Estou a processar a tua pergunta sobre "${text}". Podes consultar as tuas metas de macronutrientes na barra de regime no topo!` 
+        });
+        localStorage.setItem('my_fitness_chat_history', JSON.stringify(chatHistory));
+        renderChatMessages();
+      }, 800);
+
+      localStorage.setItem('my_fitness_chat_history', JSON.stringify(chatHistory));
     }
 
     function obterImagemAlimento(nomeTexto) {
@@ -438,45 +672,41 @@
     }
 
     function calcularIntervaloCalorias(regime) {
-  const refeicoesFiltradas = rawRefeicoes.filter(r => (r.regime || 'bulk').toLowerCase() === regime);
+      const refeicoesFiltradas = rawRefeicoes.filter(r => (r.regime || 'bulk').toLowerCase() === regime);
+      if (refeicoesFiltradas.length === 0) {
+        return 'Sem plano';
+      }
 
-  // Se não existirem refeições para este regime na base de dados, indica que está sem dados
-  if (refeicoesFiltradas.length === 0) {
-    return 'Sem plano'; // ou podes colocar '0'
-  }
+      let porCategoria = {};
+      refeicoesFiltradas.forEach(r => {
+        const cat = r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim().toLowerCase();
+        if (!porCategoria[cat]) porCategoria[cat] = [];
+        porCategoria[cat].push(parseFloat(r.calorias_totais) || 0);
+      });
 
-  // Agrupa os pratos/opções pelo tipo de refeição
-  let porCategoria = {};
-  refeicoesFiltradas.forEach(r => {
-    const cat = r.nome_refeicao.split(':')[0].replace(/ \d+$/, '').trim().toLowerCase();
-    if (!porCategoria[cat]) porCategoria[cat] = [];
-    porCategoria[cat].push(parseFloat(r.calorias_totais) || 0);
-  });
+      let minTotal = 0;
+      let maxTotal = 0;
 
-  let minTotal = 0;
-  let maxTotal = 0;
+      Object.values(porCategoria).forEach(caloriasList => {
+        if (caloriasList.length > 0) {
+          minTotal += Math.min(...caloriasList);
+          maxTotal += Math.max(...caloriasList);
+        }
+      });
 
-  // Para cada refeição do dia, calcula a opção mínima e máxima disponível
-  Object.values(porCategoria).forEach(caloriasList => {
-    if (caloriasList.length > 0) {
-      minTotal += Math.min(...caloriasList);
-      maxTotal += Math.max(...caloriasList);
+      if (minTotal === 0 && maxTotal === 0) {
+        return 'Sem plano';
+      }
+
+      const minArredondado = Math.round(minTotal / 50) * 50;
+      const maxArredondado = Math.round(maxTotal / 50) * 50;
+
+      if (minArredondado === maxArredondado) {
+        return `~${minArredondado}`;
+      }
+
+      return `${minArredondado} - ${maxArredondado}`;
     }
-  });
-
-  if (minTotal === 0 && maxTotal === 0) {
-    return 'Sem plano';
-  }
-
-  const minArredondado = Math.round(minTotal / 50) * 50;
-  const maxArredondado = Math.round(maxTotal / 50) * 50;
-
-  if (minArredondado === maxArredondado) {
-    return `~${minArredondado}`;
-  }
-
-  return `${minArredondado} - ${maxArredondado}`;
-}
 
     function setRegime(regime) {
       currentRegime = regime;
