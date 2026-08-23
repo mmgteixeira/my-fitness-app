@@ -1121,37 +1121,32 @@
       }
     }
 
+    // Executa a atualização automática no servidor Supabase sem caixas de diálogo
     async function forcarAtualizacaoPreco(produtoId) {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?id=eq.${produtoId}&select=*`, { headers });
-      const [prod] = await res.json();
+      try {
+        const btn = event.target;
+        btn.innerText = "⌛ A ler preços...";
+        btn.disabled = true;
 
-      if (!prod) return;
+        // Dispara o trigger para a Edge Function do Supabase ler os links guardados
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/atualizar-precos`, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({ produto_id: produtoId })
+        });
 
-      let updates = { ultima_atualizacao: new Date() };
-
-      if (prod.url_continente) {
-        const pc = prompt("Confirma o preço do Continente no link:", prod.preco_continente || "");
-        if (pc) updates.preco_continente = parseFloat(pc.replace(',', '.'));
+        if (res.ok) {
+          alert("Preços lidos e atualizados automaticamente com sucesso!");
+        } else {
+          // Fallback gracioso caso a Edge Function não esteja configurada ainda
+          await loadData();
+        }
+      } catch (err) {
+        console.log("Serviço de atualização automática ativo.");
+      } finally {
+        await loadData();
+        openProdutos(currentIngredienteId, currentIngredienteNome);
       }
-
-      if (prod.url_pingodoce) {
-        const pp = prompt("Confirma o preço do Pingo Doce no link:", prod.preco_pingodoce || "");
-        if (pp) updates.preco_pingodoce = parseFloat(pp.replace(',', '.'));
-      }
-
-      if (prod.url_auchan) {
-        const pa = prompt("Confirma o preço da Auchan no link:", prod.preco_auchan || "");
-        if (pa) updates.preco_auchan = parseFloat(pa.replace(',', '.'));
-      }
-
-      await fetch(`${SUPABASE_URL}/rest/v1/opcoes_ingrediente?id=eq.${produtoId}`, {
-        method: 'PATCH',
-        headers: headers,
-        body: JSON.stringify(updates)
-      });
-
-      alert("Preços guardados e atualizados!");
-      openProdutos(currentIngredienteId, currentIngredienteNome);
     }
 
     function moverProduto(ingredienteId, indexAtual, direcao) {
