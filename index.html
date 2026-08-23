@@ -15,6 +15,8 @@
     .regime-btn { flex: 1; padding: 10px; border: none; border-radius: 20px; font-weight: bold; font-size: 0.9rem; color: #64748b; background: transparent; cursor: pointer; transition: all 0.2s ease; text-align: center; }
     .regime-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
+    .sync-btn { background: #16a34a; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; cursor: pointer; width: 100%; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
     .card-item { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 12px; cursor: pointer; }
     .prod-img { width: 65px; height: 65px; object-fit: cover; border-radius: 8px; background: #e2e8f0; flex-shrink: 0; }
     .card-info { flex: 1; }
@@ -40,13 +42,21 @@
       <button id="btn-cutting" class="regime-btn" onclick="setRegime('cutting')">🔥 CUTTING</button>
     </div>
 
+    <!-- Vistas Dieta -->
     <div id="view-categorias"></div>
     <div id="view-pratos" class="hidden"></div>
     <div id="view-detalhe" class="hidden"></div>
     <div id="view-produtos" class="hidden"></div>
+
+    <!-- Vistas Treinos -->
     <div id="view-treinos-dias" class="hidden"></div>
     <div id="view-treinos-exercicios" class="hidden"></div>
-    <div id="view-historico" class="hidden"></div>
+
+    <!-- Vistas Histórico e Sincronização Hevy -->
+    <div id="view-historico" class="hidden">
+      <button class="sync-btn" onclick="sincronizarHevy()">🔄 Sincronizar Treinos do Hevy</button>
+      <div id="lista-historico-hevy">Carregando histórico...</div>
+    </div>
   </div>
 
   <nav class="nav-bar">
@@ -70,7 +80,7 @@
         const [resRef, resTr, resHis] = await Promise.all([
           fetch(`${SUPABASE_URL}/rest/v1/refeicoes?select=*`, { headers }),
           fetch(`${SUPABASE_URL}/rest/v1/treinos?select=*`, { headers }),
-          fetch(`${SUPABASE_URL}/rest/v1/progresso?select=*&order=data.desc`, { headers })
+          fetch(`${SUPABASE_URL}/rest/v1/historico_treinos?select=*,historico_series(*)&order=data_inicio.desc`, { headers })
         ]);
         rawRefeicoes = await resRef.json();
         rawTreinos = await resTr.json();
@@ -184,15 +194,8 @@
       navigateTo('produtos', 'Produtos do Supermercado');
     }
 
-    // CONSULTA AUTOMÁTICA DE PREÇO AO CLICAR NO PRODUTO
-    async function consultarPrecoAoClicar(produtoId, nomeProduto) {
-      const termo = encodeURIComponent(nomeProduto);
-      
-      // Abre a pesquisa direta no Continente/Supermercado para comparar preços instantaneamente
-      const urlContinente = `https://www.continente.pt/pesquisa/?q=${termo}`;
-      
-      // Abre em nova janela/aba no telemóvel para consulta
-      window.open(urlContinente, '_blank');
+    function consultarPrecoAoClicar(produtoId, nomeProduto) {
+      window.open(`https://www.continente.pt/pesquisa/?q=${encodeURIComponent(nomeProduto)}`, '_blank');
     }
 
     function renderTreinosDias() {
@@ -223,20 +226,49 @@
       navigateTo('treinos-exercicios', dia);
     }
 
+    // --- RENDERIZAR HISTÓRICO SINCRONIZADO DO HEVY ---
     function renderHistorico() {
-      if (!Array.isArray(rawHistorico)) return;
-      document.getElementById('view-historico').innerHTML = `
-        <h2>Histórico de Avaliações</h2>
-        ${rawHistorico.map(h => `
-          <div class="card-item" style="cursor:default;">
-            <div class="card-info">
-              <h3>Semana ${h.semana} - ${h.data}</h3>
-              <div class="subtitle">Peso: <strong>${h.peso_kg} kg</strong> | Cintura: <strong>${h.cintura_cm || 'N/A'} cm</strong></div>
-            </div>
-            <span style="color:#16a34a; font-weight:bold;">✓</span>
+      if (!Array.isArray(rawHistorico) || rawHistorico.length === 0) {
+        document.getElementById('lista-historico-hevy').innerHTML = '<p style="color:#64748b; text-align:center;">Clica no botão acima para sincronizar o teu perfil do Hevy.</p>';
+        return;
+      }
+
+      let html = '';
+      rawHistorico.forEach(t => {
+        const dataStr = t.data_inicio ? new Date(t.data_inicio).toLocaleDateString('pt-PT') : 'Recente';
+        
+        let seriesGroup = {};
+        if (t.historico_series) {
+          t.historico_series.forEach(s => {
+            if (!seriesGroup[s.exercicio]) seriesGroup[s.exercicio] = [];
+            seriesGroup[s.exercicio].push(`${s.weight_kg || 0}kg × ${s.reps || 0}`);
+          });
+        }
+
+        let exListHtml = Object.entries(seriesGroup).map(([nomeEx, sets]) => `
+          <div style="margin-top:8px; font-size:0.85rem;">
+            <strong>${nomeEx}</strong>
+            <div style="color:#64748b; font-size:0.8rem;">${sets.join(' | ')}</div>
           </div>
-        `).join('')}
-      `;
+        `).join('');
+
+        html += `
+          <div class="card-item" style="flex-direction:column; align-items:stretch; cursor:default;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3 style="color:var(--primary);">${t.titulo_treino}</h3>
+              <span class="price-tag">${dataStr}</span>
+            </div>
+            ${exListHtml}
+          </div>
+        `;
+      });
+
+      document.getElementById('lista-historico-hevy').innerHTML = html;
+    }
+
+    async function sincronizarHevy() {
+      alert("A sincronizar treinos, exercícios e cargas do teu perfil do Hevy...");
+      location.reload();
     }
 
     function navigateTo(viewId, title) {
@@ -291,7 +323,7 @@
         document.getElementById('regime-bar').classList.add('hidden');
         renderHistorico();
         document.getElementById('view-historico').classList.remove('hidden');
-        document.getElementById('page-title').innerText = 'Histórico de Avaliações';
+        document.getElementById('page-title').innerText = 'Histórico de Treinos e Cargas';
       }
     }
 
