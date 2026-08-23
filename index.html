@@ -236,6 +236,26 @@
       navigateTo('treinos-exercicios', dia);
     }
 
+    const EXERCISE_GIFS = {
+  "Front Raise (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Front-Raise.gif",
+  "Lateral Raise (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif",
+  "Lunge (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lunge.gif",
+  "Romanian Deadlift (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Romanian-Deadlift.gif",
+  "Chest Fly (Machine)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Pec-Deck-Fly.gif",
+  "Incline Bench Press (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Incline-Dumbbell-Press.gif",
+  "Bench Press (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Press.gif",
+  "Lat Pulldown (Cable)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lat-Pulldown.gif",
+  "Lat Pulldown - Close Grip (Cable)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Close-Grip-Lat-Pulldown.gif",
+  "Triceps Pushdown": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Pushdown.gif",
+  "Bicep Curl (Cable)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Cable-Bicep-Curl.gif",
+  "Bicep Curl (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Curl.gif",
+  "Bent Over Row (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Two-Arm-Dumbbell-Bent-Over-Row.gif",
+  "Leg Press Horizontal (Machine)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Press.gif",
+  "Leg Extension (Machine)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Extension.gif",
+  "Calf Press (Machine)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Calf-Press-on-Leg-Press.gif",
+  "Face Pull": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Face-Pull.gif"
+};
+    
     async function openExercicioHistorico(nomeHevy, nomePt) {
   // 1. Procura o histórico de séries no Supabase
   let res = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=eq.${encodeURIComponent(nomeHevy)}&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
@@ -246,23 +266,8 @@
     series = await res.json();
   }
 
-  // 2. Mapeamento preciso do slug para o repositório de exercícios (Free Exercise DB)
-  let slug = nomeHevy
-    .toLowerCase()
-    .replace(/\s*\([^)]*\)/g, "") // Remove parêntesis ex: (Dumbbell) -> Dumbbell no início se preciso
-    .trim();
-
-  // Tratamento específico de prefixos/sufixos para corresponder à pasta exata
-  if (nomeHevy.includes("(Dumbbell)")) slug = "dumbbell_" + slug;
-  else if (nomeHevy.includes("(Cable)")) slug = "cable_" + slug;
-  else if (nomeHevy.includes("(Machine)")) slug = "lever_" + slug;
-
-  slug = slug.replace(/[^a-z0-9]/g, "_").replace(/_+/g, "_");
-
-  // URLs de imagens e GIFs de demonstração
-  const urlFrame0 = `https://raw.githubusercontent.com/yuhas/free-exercise-db/main/exercises/${slug}/0.jpg`;
-  const urlFrame1 = `https://raw.githubusercontent.com/yuhas/free-exercise-db/main/exercises/${slug}/1.jpg`;
-  const fallbackAnatomico = `https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=300&auto=format&fit=crop&q=60`;
+  // 2. Obtém o GIF direto do dicionário
+  const gifUrl = EXERCISE_GIFS[nomeHevy] || "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=300&auto=format&fit=crop&q=60";
 
   let historicoHtml = '';
   let chartLabels = [];
@@ -299,10 +304,7 @@
   document.getElementById('view-exercicio-historico').innerHTML = `
     <div style="text-align:center; margin-bottom:16px;">
       <div style="background:#ffffff; border-radius:16px; padding:8px; display:inline-block; border:1px solid #e2e8f0; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-        <img id="demo-img" src="${urlFrame0}" 
-             data-f0="${urlFrame0}" 
-             data-f1="${urlFrame1}"
-             onerror="this.onerror=null; this.src='${fallbackAnatomico}';" 
+        <img id="demo-img" src="${gifUrl}" 
              alt="Demonstração do Exercício" 
              style="width:200px; height:200px; object-fit:contain; border-radius:8px;">
       </div>
@@ -321,18 +323,6 @@
   `;
 
   navigateTo('exercicio-historico', 'Evolução do Exercício');
-
-  // Alterna entre Frame 0 e Frame 1 para simular o GIF animado do movimento
-  const imgEl = document.getElementById('demo-img');
-  if (imgEl && imgEl.dataset.f1) {
-    let step = 0;
-    setInterval(() => {
-      if (imgEl.src !== fallbackAnatomico) {
-        imgEl.src = step % 2 === 0 ? imgEl.dataset.f1 : imgEl.dataset.f0;
-        step++;
-      }
-    }, 1000);
-  }
 
   if (chartData.length > 0) {
     setTimeout(() => {
