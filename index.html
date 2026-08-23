@@ -79,6 +79,27 @@
     let rawRefeicoes = [], rawTreinos = [], rawHistorico = [];
     let chartInstance = null;
 
+    // Dicionário de GIFs estáticos de exercícios do Hevy
+    const EXERCISE_GIFS = {
+      "Front Raise (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Front-Raise.gif",
+      "Lateral Raise (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif",
+      "Lunge (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lunge.gif",
+      "Romanian Deadlift (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Romanian-Deadlift.gif",
+      "Chest Fly (Machine)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Pec-Deck-Fly.gif",
+      "Incline Bench Press (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Incline-Dumbbell-Press.gif",
+      "Bench Press (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Press.gif",
+      "Lat Pulldown (Cable)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lat-Pulldown.gif",
+      "Lat Pulldown - Close Grip (Cable)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Close-Grip-Lat-Pulldown.gif",
+      "Triceps Pushdown": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Pushdown.gif",
+      "Bicep Curl (Cable)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Cable-Bicep-Curl.gif",
+      "Bicep Curl (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Curl.gif",
+      "Bent Over Row (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Two-Arm-Dumbbell-Bent-Over-Row.gif",
+      "Leg Press Horizontal (Machine)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Press.gif",
+      "Leg Extension (Machine)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Extension.gif",
+      "Calf Press (Machine)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Calf-Press-on-Leg-Press.gif",
+      "Face Pull": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Face-Pull.gif"
+    };
+
     async function loadData() {
       try {
         const [resRef, resTr, resHis] = await Promise.all([
@@ -147,6 +168,28 @@
       navigateTo('pratos', categoria);
     }
 
+    // Mapeamento simples de alimentos para imagens reais e limpas
+    function obterImagemAlimento(nomeIngrediente) {
+      const nome = nomeIngrediente.toLowerCase();
+      
+      let termo = "food";
+      if (nome.includes("pão") || nome.includes("tosta")) termo = "bread";
+      else if (nome.includes("manteiga") || nome.includes("amendoim")) termo = "peanut-butter";
+      else if (nome.includes("ovo") || nome.includes("ovos")) termo = "eggs";
+      else if (nome.includes("abacate")) termo = "avocado";
+      else if (nome.includes("leite") || nome.includes("iogurte") || nome.includes("skyr") || nome.includes("pudim")) termo = "yogurt";
+      else if (nome.includes("fiambre") || nome.includes("peru") || nome.includes("frango")) termo = "sliced-chicken";
+      else if (nome.includes("cereal") || nome.includes("aveia") || nome.includes("nestum")) termo = "oatmeal";
+      else if (nome.includes("atum")) termo = "canned-tuna";
+      else if (nome.includes("banana")) termo = "banana";
+      else if (nome.includes("maçã") || nome.includes("maca")) termo = "apple";
+      else if (nome.includes("arroz")) termo = "rice";
+      else if (nome.includes("massa")) termo = "pasta";
+      else if (nome.includes("queijo")) termo = "cheese";
+
+      return `https://source.unsplash.com/300x300/?${termo}`;
+    }
+
     async function openDetalhe(pratoId) {
       const prato = rawRefeicoes.find(r => r.id === pratoId);
       const res = await fetch(`${SUPABASE_URL}/rest/v1/ingredientes?refeicao_id=eq.${pratoId}&select=*`, { headers });
@@ -154,15 +197,18 @@
 
       let ingHtml = '';
       if (Array.isArray(ingredientes) && ingredientes.length > 0) {
-        ingHtml = ingredientes.map(i => `
-          <div class="card-item" onclick="openProdutos(${i.id}, '${i.nome.replace(/'/g, "")}')">
-            <img class="prod-img" src="https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=150&auto=format&fit=crop&q=60" alt="Ingrediente">
-            <div class="card-info">
-              <h3>${i.nome}</h3>
-              <div class="subtitle">${i.quantidade_descricao}</div>
-            </div>
-            <span>Ver marcas ❯</span>
-          </div>`).join('');
+        ingHtml = ingredientes.map(i => {
+          const imgAlimento = i.imagem_url || obterImagemAlimento(i.nome);
+          return `
+            <div class="card-item" onclick="openProdutos(${i.id}, '${i.nome.replace(/'/g, "")}')">
+              <img class="prod-img" src="${imgAlimento}" onerror="this.src='https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=150&auto=format&fit=crop&q=60'" alt="${i.nome}">
+              <div class="card-info">
+                <h3>${i.nome}</h3>
+                <div class="subtitle">${i.quantidade_descricao}</div>
+              </div>
+              <span>Ver marcas ❯</span>
+            </div>`;
+        }).join('');
       } else {
         ingHtml = `<div class="card-item"><div class="card-info"><p style="margin:0;">${prato.ingredientes_descricao}</p></div></div>`;
       }
@@ -236,121 +282,97 @@
       navigateTo('treinos-exercicios', dia);
     }
 
-    const EXERCISE_GIFS = {
-  "Front Raise (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Front-Raise.gif",
-  "Lateral Raise (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif",
-  "Lunge (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lunge.gif",
-  "Romanian Deadlift (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Romanian-Deadlift.gif",
-  "Chest Fly (Machine)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Pec-Deck-Fly.gif",
-  "Incline Bench Press (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Incline-Dumbbell-Press.gif",
-  "Bench Press (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Press.gif",
-  "Lat Pulldown (Cable)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lat-Pulldown.gif",
-  "Lat Pulldown - Close Grip (Cable)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Close-Grip-Lat-Pulldown.gif",
-  "Triceps Pushdown": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Pushdown.gif",
-  "Bicep Curl (Cable)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Cable-Bicep-Curl.gif",
-  "Bicep Curl (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Curl.gif",
-  "Bent Over Row (Dumbbell)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Two-Arm-Dumbbell-Bent-Over-Row.gif",
-  "Leg Press Horizontal (Machine)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Press.gif",
-  "Leg Extension (Machine)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Extension.gif",
-  "Calf Press (Machine)": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Calf-Press-on-Leg-Press.gif",
-  "Face Pull": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Face-Pull.gif"
-};
-    
     async function openExercicioHistorico(nomeHevy, nomePt) {
-  // 1. Procura o histórico de séries no Supabase
-  let res = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=eq.${encodeURIComponent(nomeHevy)}&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
-  let series = await res.json();
+      let res = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=eq.${encodeURIComponent(nomeHevy)}&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
+      let series = await res.json();
 
-  if (!Array.isArray(series) || series.length === 0) {
-    res = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=eq.${encodeURIComponent(nomePt)}&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
-    series = await res.json();
-  }
+      if (!Array.isArray(series) || series.length === 0) {
+        res = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=eq.${encodeURIComponent(nomePt)}&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
+        series = await res.json();
+      }
 
-  // 2. Obtém o GIF direto do dicionário
-  const gifUrl = EXERCISE_GIFS[nomeHevy] || "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=300&auto=format&fit=crop&q=60";
+      const gifUrl = EXERCISE_GIFS[nomeHevy] || "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=300&auto=format&fit=crop&q=60";
 
-  let historicoHtml = '';
-  let chartLabels = [];
-  let chartData = [];
+      let historicoHtml = '';
+      let chartLabels = [];
+      let chartData = [];
 
-  if (Array.isArray(series) && series.length > 0) {
-    let porData = {};
-    series.forEach(s => {
-      const dt = s.historico_treinos && s.historico_treinos.data_inicio ? new Date(s.historico_treinos.data_inicio).toLocaleDateString('pt-PT') : 'Sessão Registada';
-      if (!porData[dt]) porData[dt] = [];
-      porData[dt].push(`${s.weight_kg || 0}kg × ${s.reps || 0}`);
-    });
+      if (Array.isArray(series) && series.length > 0) {
+        let porData = {};
+        series.forEach(s => {
+          const dt = s.historico_treinos && s.historico_treinos.data_inicio ? new Date(s.historico_treinos.data_inicio).toLocaleDateString('pt-PT') : 'Sessão Registada';
+          if (!porData[dt]) porData[dt] = [];
+          porData[dt].push(`${s.weight_kg || 0}kg × ${s.reps || 0}`);
+        });
 
-    const entradas = Object.entries(porData).reverse();
-    chartLabels = entradas.map(e => e[0]);
-    chartData = entradas.map(e => {
-      const pesos = e[1].map(str => parseFloat(str.split('kg')[0]) || 0);
-      return Math.max(...pesos);
-    });
+        const entradas = Object.entries(porData).reverse();
+        chartLabels = entradas.map(e => e[0]);
+        chartData = entradas.map(e => {
+          const pesos = e[1].map(str => parseFloat(str.split('kg')[0]) || 0);
+          return Math.max(...pesos);
+        });
 
-    historicoHtml = Object.entries(porData).map(([dt, list]) => `
-      <div class="card-item" style="cursor:default; justify-content:space-between;">
-        <div>
-          <strong>${dt}</strong>
-          <div class="subtitle">${list.join(' | ')}</div>
+        historicoHtml = Object.entries(porData).map(([dt, list]) => `
+          <div class="card-item" style="cursor:default; justify-content:space-between;">
+            <div>
+              <strong>${dt}</strong>
+              <div class="subtitle">${list.join(' | ')}</div>
+            </div>
+            <span class="price-tag">${Math.max(...list.map(s => parseFloat(s.split('kg')[0])||0))} kg max</span>
+          </div>
+        `).join('');
+      } else {
+        historicoHtml = `<p style="color:#64748b; text-align:center; padding:20px;">Ainda não existem séries guardadas para <strong>${nomePt}</strong>.</p>`;
+      }
+
+      document.getElementById('view-exercicio-historico').innerHTML = `
+        <div style="text-align:center; margin-bottom:16px;">
+          <div style="background:#ffffff; border-radius:16px; padding:8px; display:inline-block; border:1px solid #e2e8f0; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+            <img id="demo-img" src="${gifUrl}" alt="Demonstração do Exercício" style="width:200px; height:200px; object-fit:contain; border-radius:8px;">
+          </div>
+          <h2 style="margin:12px 0 2px 0;">${nomePt}</h2>
+          <span style="font-size:0.75rem; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:12px;">${nomeHevy}</span>
         </div>
-        <span class="price-tag">${Math.max(...list.map(s => parseFloat(s.split('kg')[0])||0))} kg max</span>
-      </div>
-    `).join('');
-  } else {
-    historicoHtml = `<p style="color:#64748b; text-align:center; padding:20px;">Ainda não existem séries guardadas para <strong>${nomePt}</strong>.</p>`;
-  }
 
-  document.getElementById('view-exercicio-historico').innerHTML = `
-    <div style="text-align:center; margin-bottom:16px;">
-      <div style="background:#ffffff; border-radius:16px; padding:8px; display:inline-block; border:1px solid #e2e8f0; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-        <img id="demo-img" src="${gifUrl}" 
-             alt="Demonstração do Exercício" 
-             style="width:200px; height:200px; object-fit:contain; border-radius:8px;">
-      </div>
-      <h2 style="margin:12px 0 2px 0;">${nomePt}</h2>
-      <span style="font-size:0.75rem; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:12px;">${nomeHevy}</span>
-    </div>
+        ${chartData.length > 0 ? `
+          <div class="chart-box">
+            <canvas id="evolutionChart" height="200"></canvas>
+          </div>
+        ` : ''}
+        
+        <h3>HISTÓRICO DE SESSÕES (HEVY)</h3>
+        ${historicoHtml}
+      `;
 
-    ${chartData.length > 0 ? `
-      <div class="chart-box">
-        <canvas id="evolutionChart" height="200"></canvas>
-      </div>
-    ` : ''}
-    
-    <h3>HISTÓRICO DE SESSÕES (HEVY)</h3>
-    ${historicoHtml}
-  `;
+      navigateTo('exercicio-historico', 'Evolução do Exercício');
 
-  navigateTo('exercicio-historico', 'Evolução do Exercício');
-
-  if (chartData.length > 0) {
-    setTimeout(() => {
-      const ctx = document.getElementById('evolutionChart').getContext('2d');
-      if (chartInstance) chartInstance.destroy();
-      chartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: chartLabels,
-          datasets: [{
-            label: 'Carga Máxima (kg)',
-            data: chartData,
-            borderColor: '#1d4ed8',
-            backgroundColor: 'rgba(29, 78, 216, 0.1)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 5
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: true } },
-          scales: { y: { beginAtZero: false } }
-        }
-      });
-    }, 100);
-  }
-}
+      if (chartData.length > 0) {
+        setTimeout(() => {
+          const ctx = document.getElementById('evolutionChart').getContext('2d');
+          if (chartInstance) chartInstance.destroy();
+          chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: chartLabels,
+              datasets: [{
+                label: 'Carga Máxima (kg)',
+                data: chartData,
+                borderColor: '#1d4ed8',
+                backgroundColor: 'rgba(29, 78, 216, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 5
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: true } },
+              scales: { y: { beginAtZero: false } }
+            }
+          });
+        }, 100);
+      }
+    }
 
     async function sincronizarHevy() {
       alert("A sincronizar dados recentes com o relógio/Hevy...");
