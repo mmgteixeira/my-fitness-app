@@ -6,36 +6,265 @@
   <title>My Fitness Coach AI</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    :root { --primary: #1d4ed8; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; }
-    header { background: var(--primary); color: white; padding: 16px; display: flex; align-items: center; gap: 12px; font-weight: bold; font-size: 1.1rem; }
-    .back-btn { background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    /* Variaveis de Temas */
+    :root {
+      --primary: #1d4ed8;
+      --primary-dark: #1e40af;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --tag-bg: #f0fdf4;
+      --tag-text: #16a34a;
+      --tag-border: #bbf7d0;
+      --header-bg: #1d4ed8;
+      --header-text: #ffffff;
+      --nav-bg: #ffffff;
+    }
+
+    [data-theme="dark"] {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --tag-bg: #064e3b;
+      --tag-text: #34d399;
+      --tag-border: #059669;
+      --header-bg: #1e293b;
+      --header-text: #f8fafc;
+      --nav-bg: #1e293b;
+    }
+
+    [data-theme="cyberpunk"] {
+      --primary: #d946ef;
+      --primary-dark: #c026d3;
+      --bg: #180828;
+      --card: #2e1065;
+      --text: #f5d0fe;
+      --text-muted: #a855f7;
+      --border: #581c87;
+      --tag-bg: #701a75;
+      --tag-text: #f0abfc;
+      --tag-border: #a21caf;
+      --header-bg: #2e1065;
+      --header-text: #f5d0fe;
+      --nav-bg: #2e1065;
+    }
+
+    [data-theme="emerald"] {
+      --primary: #059669;
+      --primary-dark: #047857;
+      --bg: #f0fdf4;
+      --card: #ffffff;
+      --text: #064e3b;
+      --text-muted: #047857;
+      --border: #a7f3d0;
+      --tag-bg: #d1fae5;
+      --tag-text: #065f46;
+      --tag-border: #6ee7b7;
+      --header-bg: #059669;
+      --header-text: #ffffff;
+      --nav-bg: #ffffff;
+    }
+
+    [data-theme="orange"] {
+      --primary: #ea580c;
+      --primary-dark: #c2410c;
+      --bg: #fff7ed;
+      --card: #ffffff;
+      --text: #431407;
+      --text-muted: #9a3412;
+      --border: #fed7aa;
+      --tag-bg: #ffedd5;
+      --tag-text: #c2410c;
+      --tag-border: #fdba74;
+      --header-bg: #ea580c;
+      --header-text: #ffffff;
+      --nav-bg: #ffffff;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding-bottom: 80px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: bold;
+      font-size: 1.1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-left { display: flex; align-items: center; gap: 12px; }
+
+    .back-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: var(--header-text);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .theme-select {
+      background: rgba(255,255,255,0.15);
+      color: var(--header-text);
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 6px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      outline: none;
+      cursor: pointer;
+    }
+    .theme-select option { background: #1e293b; color: #ffffff; }
+
     .container { padding: 16px; max-width: 600px; margin: 0 auto; }
     
-    .regime-switch-container { display: flex; background: #e2e8f0; padding: 4px; border-radius: 25px; margin-bottom: 16px; }
-    .regime-btn { flex: 1; padding: 10px; border: none; border-radius: 20px; font-weight: bold; font-size: 0.9rem; color: #64748b; background: transparent; cursor: pointer; transition: all 0.2s ease; text-align: center; }
-    .regime-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .regime-switch-container {
+      display: flex;
+      background: var(--border);
+      padding: 4px;
+      border-radius: 25px;
+      margin-bottom: 16px;
+    }
+    .regime-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    .regime-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
 
-    .sync-btn { background: #16a34a; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; cursor: pointer; width: 100%; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .sync-btn {
+      background: #16a34a;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
 
-    .card-item { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 12px; cursor: pointer; }
-    .prod-img { width: 65px; height: 65px; object-fit: cover; border-radius: 8px; background: #e2e8f0; flex-shrink: 0; }
+    .card-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.3s ease;
+    }
+    .card-item:active { transform: scale(0.98); }
+
+    .prod-img {
+      width: 65px;
+      height: 65px;
+      object-fit: cover;
+      border-radius: 10px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
     .card-info { flex: 1; }
-    .card-info h3 { margin: 0; font-size: 0.95rem; color: #1e293b; }
-    .card-info .subtitle { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
-    .price-tag { font-size: 0.85rem; font-weight: bold; color: #16a34a; background: #f0fdf4; padding: 4px 8px; border-radius: 6px; border: 1px solid #bbf7d0; }
-    .chart-box { background: white; padding: 16px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 16px; }
-    .nav-bar { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #e2e8f0; }
-    .nav-item { background: none; border: none; font-weight: 600; color: #64748b; font-size: 0.9rem; cursor: pointer; }
-    .nav-item.active { color: var(--primary); }
+    .card-info h3 { margin: 0; font-size: 0.95rem; color: var(--text); }
+    .card-info .subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 3px; }
+    
+    .price-tag {
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: var(--tag-text);
+      background: var(--tag-bg);
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--tag-border);
+    }
+
+    .chart-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 14px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+      margin-bottom: 16px;
+    }
+
+    .nav-bar {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: var(--nav-bg);
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+      transition: background 0.3s ease;
+    }
+    .nav-item {
+      background: none;
+      border: none;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .nav-item.active { color: var(--primary); font-weight: bold; }
     .hidden { display: none; }
   </style>
 </head>
 <body>
 
   <header>
-    <button id="btn-back" class="back-btn hidden" onclick="goBack()">❮</button>
-    <span id="page-title">Refeições do Dia</span>
+    <div class="header-left">
+      <button id="btn-back" class="back-btn hidden" onclick="goBack()">❮</button>
+      <span id="page-title">Refeições do Dia</span>
+    </div>
+    <select id="theme-selector" class="theme-select" onchange="changeTheme(this.value)">
+      <option value="default">🔵 Azul</option>
+      <option value="dark">🌙 Dark Mode</option>
+      <option value="cyberpunk">🔥 Cyberpunk</option>
+      <option value="emerald">🌿 Esmeralda</option>
+      <option value="orange">⚡ Laranja</option>
+    </select>
   </header>
 
   <div class="container">
@@ -99,6 +328,21 @@
       "Face Pull": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Face-Pull.gif"
     };
 
+    function changeTheme(themeName) {
+      if (themeName === 'default') {
+        document.documentElement.removeAttribute('data-theme');
+      } else {
+        document.documentElement.setAttribute('data-theme', themeName);
+      }
+      localStorage.setItem('my_fitness_app_theme', themeName);
+    }
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem('my_fitness_app_theme') || 'default';
+      document.getElementById('theme-selector').value = savedTheme;
+      changeTheme(savedTheme);
+    }
+
     function obterImagemAlimento(nomeTexto) {
       const nome = nomeTexto.toLowerCase();
       
@@ -157,7 +401,7 @@
       const refeicoesFiltradas = rawRefeicoes.filter(r => (r.regime || 'bulk').toLowerCase() === currentRegime);
       
       if (refeicoesFiltradas.length === 0) {
-        document.getElementById('view-categorias').innerHTML = `<p style="text-align:center; color:#64748b; padding:20px;">Nenhum plano de <strong>${currentRegime.toUpperCase()}</strong> registado ainda.</p>`;
+        document.getElementById('view-categorias').innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:20px;">Nenhum plano de <strong>${currentRegime.toUpperCase()}</strong> registado ainda.</p>`;
         return;
       }
 
@@ -226,7 +470,7 @@
 
       document.getElementById('view-produtos').innerHTML = `
         <h3>Opções de Supermercado</h3>
-        <p style="color:#64748b; font-size:0.85rem; margin-bottom:16px;">${nomeIngrediente}</p>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">${nomeIngrediente}</p>
         ${Array.isArray(produtos) && produtos.length > 0 ? produtos.map(prod => {
           const imgProd = prod.imagem_url || obterImagemAlimento(prod.nome_produto + " " + nomeIngrediente);
           return `
@@ -266,7 +510,7 @@
       const exercicios = rawTreinos.filter(t => t.dia_semana === dia);
       document.getElementById('view-treinos-exercicios').innerHTML = `
         <h2>${dia}</h2>
-        <p style="color:#64748b; font-size:0.85rem; margin-bottom:16px;">Clica num exercício para ver o gráfico de cargas e o histórico guardado</p>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">Clica num exercício para ver o gráfico de cargas e o histórico guardado</p>
         ${exercicios.map(ex => {
           const hevyKey = ex.nome_hevy || ex.exercicio;
           return `
@@ -323,16 +567,16 @@
           </div>
         `).join('');
       } else {
-        historicoHtml = `<p style="color:#64748b; text-align:center; padding:20px;">Ainda não existem séries guardadas para <strong>${nomePt}</strong>.</p>`;
+        historicoHtml = `<p style="color:var(--text-muted); text-align:center; padding:20px;">Ainda não existem séries guardadas para <strong>${nomePt}</strong>.</p>`;
       }
 
       document.getElementById('view-exercicio-historico').innerHTML = `
         <div style="text-align:center; margin-bottom:16px;">
-          <div style="background:#ffffff; border-radius:16px; padding:8px; display:inline-block; border:1px solid #e2e8f0; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+          <div style="background:var(--card); border-radius:16px; padding:8px; display:inline-block; border:1px solid var(--border); box-shadow:0 2px 4px rgba(0,0,0,0.05);">
             <img id="demo-img" src="${gifUrl}" alt="Demonstração do Exercício" style="width:200px; height:200px; object-fit:contain; border-radius:8px;">
           </div>
           <h2 style="margin:12px 0 2px 0;">${nomePt}</h2>
-          <span style="font-size:0.75rem; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:12px;">${nomeHevy}</span>
+          <span style="font-size:0.75rem; color:var(--text-muted); background:var(--border); padding:2px 8px; border-radius:12px;">${nomeHevy}</span>
         </div>
 
         ${chartData.length > 0 ? `
@@ -451,6 +695,7 @@
       }
     }
 
+    initTheme();
     loadData();
   </script>
 </body>
