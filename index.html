@@ -218,105 +218,105 @@
     }
 
     function openExercicios(dia) {
-      const exercicios = rawTreinos.filter(t => t.dia_semana === dia);
-      document.getElementById('view-treinos-exercicios').innerHTML = `
-        <h2>${dia}</h2>
-        <p style="color:#64748b; font-size:0.85rem; margin-bottom:16px;">Clica num exercício para ver o gráfico de cargas e o histórico do Hevy</p>
-        ${exercicios.map(ex => `
-          <div class="card-item" onclick="openExercicioHistorico('${ex.exercicio.replace(/'/g, "")}')">
-            <div class="card-info">
-              <h3 style="color:var(--primary);">${ex.exercicio}</h3>
-              <div class="subtitle">Grupo: ${ex.grupo_muscular} | ${ex.series_repeticoes} | ${ex.carga_kg} kg</div>
-            </div>
-            <span>📊 Histórico ❯</span>
+  const exercicios = rawTreinos.filter(t => t.dia_semana === dia);
+  document.getElementById('view-treinos-exercicios').innerHTML = `
+    <h2>${dia}</h2>
+    <p style="color:#64748b; font-size:0.85rem; margin-bottom:16px;">Clica num exercício para ver o gráfico de cargas e o histórico do Hevy</p>
+    ${exercicios.map(ex => {
+      // Usa o nome_hevy se existir, senão usa o nome do exercício
+      const hevyName = ex.nome_hevy || ex.exercicio;
+      return `
+        <div class="card-item" onclick="openExercicioHistorico('${hevyName.replace(/'/g, "")}', '${ex.exercicio.replace(/'/g, "")}')">
+          <div class="card-info">
+            <h3 style="color:var(--primary);">${ex.exercicio}</h3>
+            <div class="subtitle">Grupo: ${ex.grupo_muscular} | ${ex.series_repeticoes} | ${ex.carga_kg} kg</div>
           </div>
-        `).join('')}
+          <span>📊 Histórico ❯</span>
+        </div>
       `;
-      navigateTo('treinos-exercicios', dia);
-    }
+    }).join('')}
+  `;
+  navigateTo('treinos-exercicios', dia);
+}
 
-    // --- HISTÓRICO E GRÁFICO POR EXERCÍCIO ---
-    async function openExercicioHistorico(nomeExercicio) {
-      // Procura o histórico do Hevy para este exercício no Supabase
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=ilike.*${encodeURIComponent(nomeExercicio)}*&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
-      const series = await res.json();
+// PROCURA EXATA USANDO A CHAVE EM INGLÊS DO HEVY
+async function openExercicioHistorico(nomeHevy, nomePt) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/historico_series?exercicio=eq.${encodeURIComponent(nomeHevy)}&select=*,historico_treinos(data_inicio)&order=id.desc`, { headers });
+  const series = await res.json();
 
-      let historicoHtml = '';
-      let chartLabels = [];
-      let chartData = [];
+  let historicoHtml = '';
+  let chartLabels = [];
+  let chartData = [];
 
-      if (Array.isArray(series) && series.length > 0) {
-        // Agrupar por data de treino
-        let porData = {};
-        series.forEach(s => {
-          const dt = s.historico_treinos ? new Date(s.historico_treinos.data_inicio).toLocaleDateString('pt-PT') : 'Sem Data';
-          if (!porData[dt]) porData[dt] = [];
-          porData[dt].push(`${s.weight_kg}kg × ${s.reps}`);
-        });
+  if (Array.isArray(series) && series.length > 0) {
+    let porData = {};
+    series.forEach(s => {
+      const dt = s.historico_treinos && s.historico_treinos.data_inicio ? new Date(s.historico_treinos.data_inicio).toLocaleDateString('pt-PT') : 'Recente';
+      if (!porData[dt]) porData[dt] = [];
+      porData[dt].push(`${s.weight_kg || 0}kg × ${s.reps || 0}`);
+    });
 
-        // Preparar dados para o gráfico (últimas sessões)
-        const entradas = Object.entries(porData).reverse();
-        chartLabels = entradas.map(e => e[0]);
-        chartData = entradas.map(e => {
-          const pesos = e[1].map(str => parseFloat(str.split('kg')[0]) || 0);
-          return Math.max(...pesos);
-        });
+    const entradas = Object.entries(porData).reverse();
+    chartLabels = entradas.map(e => e[0]);
+    chartData = entradas.map(e => {
+      const pesos = e[1].map(str => parseFloat(str.split('kg')[0]) || 0);
+      return Math.max(...pesos);
+    });
 
-        historicoHtml = Object.entries(porData).map(([dt, list]) => `
-          <div class="card-item" style="cursor:default; justify-content:space-between;">
-            <div>
-              <strong>${dt}</strong>
-              <div class="subtitle">${list.join(' | ')}</div>
-            </div>
-            <span class="price-tag">${Math.max(...list.map(s => parseFloat(s.split('kg')[0])||0))} kg max</span>
-          </div>
-        `).join('');
-      } else {
-        historicoHtml = `<p style="color:#64748b; text-align:center; padding:20px;">Ainda não há registos sincronizados do Hevy para o exercício: <strong>${nomeExercicio}</strong>.</p>`;
-      }
+    historicoHtml = Object.entries(porData).map(([dt, list]) => `
+      <div class="card-item" style="cursor:default; justify-content:space-between;">
+        <div>
+          <strong>${dt}</strong>
+          <div class="subtitle">${list.join(' | ')}</div>
+        </div>
+        <span class="price-tag">${Math.max(...list.map(s => parseFloat(s.split('kg')[0])||0))} kg max</span>
+      </div>
+    `).join('');
+  } else {
+    historicoHtml = `<p style="color:#64748b; text-align:center; padding:20px;">Sem registos no Hevy para a chave: <strong>${nomeHevy}</strong>.</p>`;
+  }
 
-      document.getElementById('view-exercicio-historico').innerHTML = `
-        <h2>${nomeExercicio}</h2>
-        ${chartData.length > 0 ? `
-          <div class="chart-box">
-            <canvas id="evolutionChart" height="200"></canvas>
-          </div>
-        ` : ''}
-        <h3>HISTÓRICO DE SESSÕES (HEVY)</h3>
-        ${historicoHtml}
-      `;
+  document.getElementById('view-exercicio-historico').innerHTML = `
+    <h2>${nomePt}</h2>
+    <p style="font-size:0.75rem; color:#64748b; margin-top:-8px; margin-bottom:16px;">Mapeado com Hevy: <em>${nomeHevy}</em></p>
+    ${chartData.length > 0 ? `
+      <div class="chart-box">
+        <canvas id="evolutionChart" height="200"></canvas>
+      </div>
+    ` : ''}
+    <h3>HISTÓRICO DE SESSÕES</h3>
+    ${historicoHtml}
+  `;
 
-      navigateTo('exercicio-historico', 'Evolução do Exercício');
+  navigateTo('exercicio-historico', 'Evolução do Exercício');
 
-      // Desenhar o gráfico de evolução de carga (kg)
-      if (chartData.length > 0) {
-        setTimeout(() => {
-          const ctx = document.getElementById('evolutionChart').getContext('2d');
-          if (chartInstance) chartInstance.destroy();
-          chartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-              labels: chartLabels,
-              datasets: [{
-                label: 'Carga Máxima (kg)',
-                data: chartData,
-                borderColor: '#1d4ed8',
-                backgroundColor: 'rgba(29, 78, 216, 0.1)',
-                fill: true,
-                tension: 0.3,
-                pointRadius: 5
-              }]
-            },
-            options: {
-              responsive: true,
-              plugins: { legend: { display: true } },
-              scales: { y: { beginAtZero: false } }
-            }
-          });
-        }, 100);
-      }
-    }
-
+  if (chartData.length > 0) {
+    setTimeout(() => {
+      const ctx = document.getElementById('evolutionChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: chartLabels,
+          datasets: [{
+            label: 'Carga Máxima (kg)',
+            data: chartData,
+            borderColor: '#1d4ed8',
+            backgroundColor: 'rgba(29, 78, 216, 0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: true } },
+          scales: { y: { beginAtZero: false } }
+        }
+      });
+    }, 100);
+  }
+}
     async function sincronizarHevy() {
       alert("A procurar novas sessões e cargas no teu perfil do Hevy...");
       location.reload();
